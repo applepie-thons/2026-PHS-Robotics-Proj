@@ -18,15 +18,18 @@ import javax.sound.sampled.Port;
 import org.opencv.core.Mat;
 
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import com.kauailabs.navx.frc.AHRS;
+
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cameraserver.CameraServerShared;
 import edu.wpi.first.cscore.CvSink;
 import edu.wpi.first.cscore.UsbCamera;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Power;
-
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 
@@ -56,10 +59,12 @@ public class Robot extends TimedRobot {
     );
 
     // ------ Gyro ------ //
-    private final ADXRS450_Gyro gyro = new ADXRS450_Gyro();
 
     private DifferentialDrive robotDrive = new DifferentialDrive(leftDrive, rightDrive);
     private double encoderRotations = 0.0;
+
+    private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+    // private AHRS big_gyro = new AHRS();
 
     /**
      * This function is run when the robot is first started up and should be used for any
@@ -117,11 +122,15 @@ public class Robot extends TimedRobot {
     /** This function is called periodically during operator control. */
     @Override
     public void teleopPeriodic() {
+        double converted_gyro = Math.abs(m_gyro.getRotation2d().getDegrees() % 360.0);
+
+        SmartDashboard.putNumber("gryoRotation", converted_gyro);
+
         double throttle = 0.5;
         double leftJoystick = controllerRed.getLeftY();
-        double rightJoystick = controllerRed.getRightY();
+        double rightJoystick = controllerRed.getRightX();
 
-        robotDrive.tankDrive(leftJoystick * throttle, rightJoystick * throttle);
+        robotDrive.arcadeDrive(leftJoystick * throttle, rightJoystick * throttle);
 
 
         // customArcadeDrive(controllerRed.getLeftY()*speed, controllerRed.getRightX()*speed);
