@@ -65,10 +65,12 @@ public class Robot extends TimedRobot {
     private double encoderRotations = 0.0;
 
     private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
-
+    private boolean autoTurn = false;
+    /*
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
+    */
 
     // private AHRS big_gyro = new AHRS();
 
@@ -137,6 +139,14 @@ public class Robot extends TimedRobot {
         double leftJoystick = controllerRed.getLeftY();
         double rightJoystick = controllerRed.getRightX();
 
+        robotDrive.tankDrive(leftJoystick * throttle, rightJoystick * throttle);
+        turnToOrigin(0.0, converted_gyro, 10);
+
+        if (controllerRed.getAButtonPressed() && autoTurn == false) {
+            robotDrive.tankDrive(0.5, -0.5);
+        }
+
+        /*
         if (controllerRed.getAButtonPressed() && is_auto_turning == false){
             is_auto_turning = true;
             first_auto_turn_call = true;
@@ -148,14 +158,21 @@ public class Robot extends TimedRobot {
         else{
             turn_to_degree(converted_gyro, 0.0, 0.5, 10.0);
         }
-
-        // customArcadeDrive(controllerRed.getLeftY()*speed, controllerRed.getRightX()*speed);
+        */
         
         //this.leftDrive.set(-controllerRed.getLeftY()*speed);
-        //this.rightDrive.set(controllerRed.getRightY()*speed);
-        //this.kraken.set(0.75);
     }
 
+    private void turnToOrigin(double targetDegree, double currentDegree, double accuracy)
+    {
+        double degreeDiff = (targetDegree - currentDegree) % 360;
+        if (-accuracy < degreeDiff && degreeDiff < accuracy) {
+            autoTurn = false;
+            return;
+        }
+    }
+
+    /* 
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
             double diff = (target_degree - current_degree) % 360;
             if(-accuracy < diff && diff < accuracy) {
@@ -175,19 +192,6 @@ public class Robot extends TimedRobot {
             SmartDashboard.putNumber("diff", diff);
             SmartDashboard.putNumber("direction", auto_turn_direct);
             robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
-    }
-
-    /*
-    private void customArcadeDrive(double move_speed, double turn_speed) {
-        double left_speed = -move_speed + turn_speed;
-        double right_speed = move_speed + turn_speed;
-        //normalize the vector so we dont get speeds above 1.0
-        double magnitude = Math.pow(left_speed, 2.0) + Math.pow(right_speed, 2.0);
-        left_speed /= magnitude;
-        right_speed /= magnitude;
-        
-        this.leftDrive.set(left_speed);
-        this.rightDrive.set(right_speed);
     }
     */
 
