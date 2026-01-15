@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 //import java.lang.FdLibm.Pow;
 import java.util.Vector;
 
+import javax.imageio.spi.IIOServiceProvider;
 import javax.sound.sampled.Port;
 
 import org.opencv.core.Mat;
@@ -20,7 +21,7 @@ import org.opencv.core.Mat;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-import com.kauailabs.navx.frc.AHRS;
+// import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.SPI;
@@ -64,6 +65,11 @@ public class Robot extends TimedRobot {
     private double encoderRotations = 0.0;
 
     private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
+
+    private boolean is_auto_turning = false;
+    private boolean first_auto_turn_call = true;
+    private double auto_turn_direct = 1.0;
+
     // private AHRS big_gyro = new AHRS();
 
     /**
@@ -96,6 +102,7 @@ public class Robot extends TimedRobot {
     @Override
     public void robotInit() {
     rightDrive.setInverted(true);
+    CameraServer.startAutomaticCapture(0);
 
     }
 
@@ -117,21 +124,30 @@ public class Robot extends TimedRobot {
     /** This function is called once when teleop is enabled. */
     @Override
     public void teleopInit() {
-
+        m_gyro.reset();
     }
     /** This function is called periodically during operator control. */
     @Override
     public void teleopPeriodic() {
         double converted_gyro = Math.abs(m_gyro.getRotation2d().getDegrees() % 360.0);
 
-        SmartDashboard.putNumber("gryoRotation", converted_gyro);
+        SmartDashboard.putNumber("gyroRotation", converted_gyro);
 
         double throttle = 0.5;
         double leftJoystick = controllerRed.getLeftY();
         double rightJoystick = controllerRed.getRightX();
 
-        robotDrive.arcadeDrive(leftJoystick * throttle, rightJoystick * throttle);
+        if (controllerRed.getAButtonPressed() && is_auto_turning == false){
+            is_auto_turning = true;
+            first_auto_turn_call = true;
+        }
 
+        if (is_auto_turning == false) {
+            robotDrive.arcadeDrive(leftJoystick * throttle, -rightJoystick * throttle);
+        }
+        else{
+            turn_to_degree(converted_gyro, 0.0, 0.5, 10.0);
+        }
 
         // customArcadeDrive(controllerRed.getLeftY()*speed, controllerRed.getRightX()*speed);
         
@@ -140,7 +156,26 @@ public class Robot extends TimedRobot {
         //this.kraken.set(0.75);
     }
 
-
+    private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
+            double diff = (target_degree - current_degree) % 360;
+            if(-accuracy < diff && diff < accuracy) {
+                is_auto_turning = false;
+                return;
+            }
+            SmartDashboard.putBoolean("first_auto_turn_call", first_auto_turn_call);
+            if (first_auto_turn_call == true){
+                auto_turn_direct = -(diff/Math.abs(diff));
+                if(diff < -180 || diff > 180){
+                    auto_turn_direct *= -1.0;
+                }
+                first_auto_turn_call = false;
+            }
+            
+            
+            SmartDashboard.putNumber("diff", diff);
+            SmartDashboard.putNumber("direction", auto_turn_direct);
+            robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
+    }
 
     /*
     private void customArcadeDrive(double move_speed, double turn_speed) {
