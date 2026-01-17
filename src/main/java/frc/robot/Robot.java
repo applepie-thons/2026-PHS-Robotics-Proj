@@ -32,6 +32,10 @@ import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.units.measure.Power;
 
+import com.ctre.phoenix6.StatusSignal;
+import edu.wpi.first.units.measure.Angle;
+import com.studica.frc.AHRS;
+import com.studica.frc.AHRS.NavXComType;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 /**
@@ -49,7 +53,8 @@ public class Robot extends TimedRobot {
     // ------ Drivetrain Control ------ //
     private final WPI_TalonSRX leftDrive = new WPI_TalonSRX(0);  // this one was initially 5 //
     private final WPI_TalonSRX rightDrive = new WPI_TalonSRX(3); // this one was 3, works //
-    private final TalonFX kraken = new TalonFX(7);
+    // private final TalonFX kraken = new TalonFX(7);
+    private final TalonFX kraken = new TalonFX(4);
 
     // encoder thingy
     private final Encoder testEncoder = new Encoder(
@@ -66,13 +71,13 @@ public class Robot extends TimedRobot {
 
     private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
     private boolean autoTurn = false;
-    
+
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
-    
 
-    // private AHRS big_gyro = new AHRS();
+
+    private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
     /**
      * This function is run when the robot is first started up and should be used for any
@@ -89,7 +94,7 @@ public class Robot extends TimedRobot {
      */
     @Override
     public void robotPeriodic() {}
-    
+
     /**
      * This autonomous (along with the chooser code above) shows how to select between different
      * autonomous modes using the dashboard. The sendable chooser code works with the Java
@@ -103,11 +108,14 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotInit() {
-    rightDrive.setInverted(true);
-    CameraServer.startAutomaticCapture(0);
+        m_gyro.reset();
+        m_gyro.calibrate();
 
+        navxMxp.reset();
+
+	    rightDrive.setInverted(true);
+	    CameraServer.startAutomaticCapture(0);
     }
-
 
     @Override
     public void autonomousInit() {
@@ -120,18 +128,38 @@ public class Robot extends TimedRobot {
     public void autonomousPeriodic() {
         encoderRotations = testEncoder.getDistance();
         SmartDashboard.putNumber("test Encoder Value", encoderRotations);
-        
     }
 
     /** This function is called once when teleop is enabled. */
     @Override
     public void teleopInit() {
-        m_gyro.reset();
-        m_gyro.calibrate();
+        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
+        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
+
+        double gyro2Degrees = navxMxp.getAngle();
+        SmartDashboard.putNumber("gryo2Degrees", gyro2Degrees);
     }
-    /** This function is called periodically during operator control. */
+
     @Override
     public void teleopPeriodic() {
+        StatusSignal<Angle> signal = kraken.getPosition();
+        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
+        Angle angle = signal.getValue();
+        SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
+        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
+        SmartDashboard.putString("toString", angle.toString());
+        robotDrive.tankDrive(controllerRed.getLeftY() * -0.5, controllerRed.getRightY() * -0.5);
+        if (controllerRed.getYButton()) {
+            kraken.set(0.5);
+        }
+        
+
+        double gyro2Degrees = navxMxp.getAngle();
+        SmartDashboard.putNumber("gryo2Degrees", gyro2Degrees);
+    }
+
+    /** This function is called periodically during operator control. */
+    public void teleopPeriodicTmp() {
         double m_gyro_degrees = m_gyro.getRotation2d().getDegrees();
         if(m_gyro_degrees < 360.0 && m_gyro_degrees > -360.0){
             m_gyro_degrees += 360.0;
@@ -156,7 +184,7 @@ public class Robot extends TimedRobot {
             robotDrive.tankDrive(0.5, -0.5);
         }
         */
-        
+
         if (controllerRed.getAButtonPressed() && is_auto_turning == false){
             is_auto_turning = true;
             first_auto_turn_call = true;
@@ -168,10 +196,10 @@ public class Robot extends TimedRobot {
         else{
             turn_to_degree(converted_gyro, 0.0, 0.5, 10.0);
         }
-        
-        
+
+
         //this.leftDrive.set(-controllerRed.getLeftY()*speed);
-    } 
+    }
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
             double diff = (target_degree - current_degree) % 360;
             if(-accuracy < diff && diff < accuracy) {
@@ -185,13 +213,13 @@ public class Robot extends TimedRobot {
                 }
                 first_auto_turn_call = false;
             }
-            
-            
+
+
             SmartDashboard.putNumber("diff", diff);
             SmartDashboard.putNumber("direction", auto_turn_direct);
             robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
     }
-    
+
 
     /** This function is called once when the robot is disabled. */
     @Override
@@ -207,9 +235,7 @@ public class Robot extends TimedRobot {
 
     /** This function is called periodically during test mode. */
     @Override
-    public void testPeriodic() {
-	
-    }
+    public void testPeriodic() {}
 
     /** This function is called once when the robot is first started up. */
     @Override
