@@ -66,11 +66,11 @@ public class Robot extends TimedRobot {
 
     private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
     private boolean autoTurn = false;
-    /*
+    
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
-    */
+    
 
     // private AHRS big_gyro = new AHRS();
 
@@ -127,11 +127,20 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopInit() {
         m_gyro.reset();
+        m_gyro.calibrate();
     }
     /** This function is called periodically during operator control. */
     @Override
     public void teleopPeriodic() {
-        double converted_gyro = Math.abs(m_gyro.getRotation2d().getDegrees() % 360.0);
+        double m_gyro_degrees = m_gyro.getRotation2d().getDegrees();
+        if(m_gyro_degrees < 360.0 && m_gyro_degrees > -360.0){
+            m_gyro_degrees += 360.0;
+        }
+        else if(m_gyro_degrees < -360.0){
+            m_gyro_degrees += 360.0 * Math.abs(m_gyro_degrees) / 360;
+        }
+        double converted_gyro = Math.abs(m_gyro_degrees) % 360.0;
+
 
         SmartDashboard.putNumber("gyroRotation", converted_gyro);
 
@@ -140,13 +149,14 @@ public class Robot extends TimedRobot {
         double rightJoystick = controllerRed.getRightX();
 
         robotDrive.tankDrive(leftJoystick * throttle, rightJoystick * throttle);
+        /*
         turnToOrigin(0.0, converted_gyro, 10);
 
         if (controllerRed.getAButtonPressed() && autoTurn == false) {
             robotDrive.tankDrive(0.5, -0.5);
         }
-
-        /*
+        */
+        
         if (controllerRed.getAButtonPressed() && is_auto_turning == false){
             is_auto_turning = true;
             first_auto_turn_call = true;
@@ -158,30 +168,18 @@ public class Robot extends TimedRobot {
         else{
             turn_to_degree(converted_gyro, 0.0, 0.5, 10.0);
         }
-        */
+        
         
         //this.leftDrive.set(-controllerRed.getLeftY()*speed);
-    }
-
-    private void turnToOrigin(double targetDegree, double currentDegree, double accuracy)
-    {
-        double degreeDiff = (targetDegree - currentDegree) % 360;
-        if (-accuracy < degreeDiff && degreeDiff < accuracy) {
-            autoTurn = false;
-            return;
-        }
-    }
-
-    /* 
+    } 
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
             double diff = (target_degree - current_degree) % 360;
             if(-accuracy < diff && diff < accuracy) {
                 is_auto_turning = false;
                 return;
             }
-            SmartDashboard.putBoolean("first_auto_turn_call", first_auto_turn_call);
             if (first_auto_turn_call == true){
-                auto_turn_direct = -(diff/Math.abs(diff));
+                auto_turn_direct = diff/Math.abs(diff);
                 if(diff < -180 || diff > 180){
                     auto_turn_direct *= -1.0;
                 }
@@ -193,7 +191,7 @@ public class Robot extends TimedRobot {
             SmartDashboard.putNumber("direction", auto_turn_direct);
             robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
     }
-    */
+    
 
     /** This function is called once when the robot is disabled. */
     @Override
