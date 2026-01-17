@@ -4,39 +4,21 @@
 
 package frc.robot;
 
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
+import com.ctre.phoenix6.StatusSignal;
+import com.ctre.phoenix6.hardware.TalonFX;
+
+import com.studica.frc.AHRS.NavXComType;
+import com.studica.frc.AHRS;
+
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-//import java.lang.FdLibm.Pow;
-import java.util.Vector;
-
-import javax.imageio.spi.IIOServiceProvider;
-import javax.sound.sampled.Port;
-
-import org.opencv.core.Mat;
-
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-// import com.kauailabs.navx.frc.AHRS;
-
-import edu.wpi.first.wpilibj.Encoder;
-import edu.wpi.first.wpilibj.SPI;
-import edu.wpi.first.cameraserver.CameraServer;
-import edu.wpi.first.cameraserver.CameraServerShared;
-import edu.wpi.first.cscore.CvSink;
-import edu.wpi.first.cscore.UsbCamera;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.units.measure.Power;
-
-import com.ctre.phoenix6.StatusSignal;
-import edu.wpi.first.units.measure.Angle;
-import com.studica.frc.AHRS;
-import com.studica.frc.AHRS.NavXComType;
-import com.ctre.phoenix6.hardware.TalonFX;
 
 /**
  * The methods in this class are called automatically corresponding to each mode, as described in
@@ -113,13 +95,14 @@ public class Robot extends TimedRobot {
 
         navxMxp.reset();
 
+        testEncoder.reset();
+
 	    rightDrive.setInverted(true);
 	    CameraServer.startAutomaticCapture(0);
     }
 
     @Override
     public void autonomousInit() {
-        testEncoder.reset();
         // CameraServer.startAutomaticCapture();
     }
 
@@ -132,34 +115,31 @@ public class Robot extends TimedRobot {
 
     /** This function is called once when teleop is enabled. */
     @Override
-    public void teleopInit() {
-        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
-        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
-
-        double gyro2Degrees = navxMxp.getAngle();
-        SmartDashboard.putNumber("gryo2Degrees", gyro2Degrees);
-    }
+    public void teleopInit() {}
 
     @Override
     public void teleopPeriodic() {
+        // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
         StatusSignal<Angle> signal = kraken.getPosition();
-        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
         Angle angle = signal.getValue();
         SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
-        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
         SmartDashboard.putString("toString", angle.toString());
-        robotDrive.tankDrive(controllerRed.getLeftY() * -0.5, controllerRed.getRightY() * -0.5);
-        if (controllerRed.getYButton()) {
-            kraken.set(0.5);
-        }
-        
 
-        double gyro2Degrees = navxMxp.getAngle();
-        SmartDashboard.putNumber("gryo2Degrees", gyro2Degrees);
+        // Getting data from original gyro.
+        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
+        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
+
+        // Getting angle from NavX
+        double navXAngle = navxMxp.getAngle();
+        SmartDashboard.putNumber("gryo2Degrees", navXAngle);
     }
 
     /** This function is called periodically during operator control. */
-    public void teleopPeriodicTmp() {
+
+    // *****************************************************************
+    // Temporarily named to `teleopPeriodicTank` to test our new sensors
+    // *****************************************************************
+    public void teleopPeriodicTank() {
         double m_gyro_degrees = m_gyro.getRotation2d().getDegrees();
         if(m_gyro_degrees < 360.0 && m_gyro_degrees > -360.0){
             m_gyro_degrees += 360.0;
@@ -168,7 +148,6 @@ public class Robot extends TimedRobot {
             m_gyro_degrees += 360.0 * Math.abs(m_gyro_degrees) / 360;
         }
         double converted_gyro = Math.abs(m_gyro_degrees) % 360.0;
-
 
         SmartDashboard.putNumber("gyroRotation", converted_gyro);
 
