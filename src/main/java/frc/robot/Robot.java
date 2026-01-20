@@ -12,12 +12,17 @@ import com.studica.frc.AHRS.NavXComType;
 import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.units.measure.Angle;
+import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 /**
@@ -30,7 +35,7 @@ public class Robot extends TimedRobot {
     // IMPORTANT: Plug the red labelled controller into the *RED* port *FIRST*. And
     // plug the green labelled controller into the *GREEN* port *SECOND*.
     private final XboxController controllerRed = new XboxController(0);
-    private final XboxController controllerGreen = new XboxController(1);
+    //private final XboxController controllerGreen = new XboxController(1);
 
     // ------ Drivetrain Control ------ //
     private final WPI_TalonSRX leftDrive = new WPI_TalonSRX(0);  // this one was initially 5 //
@@ -49,10 +54,10 @@ public class Robot extends TimedRobot {
     // ------ Gyro ------ //
 
     private DifferentialDrive robotDrive = new DifferentialDrive(leftDrive, rightDrive);
-    private double encoderRotations = 0.0;
+    // private double encoderRotations = 0.0;
 
     private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
-    private boolean autoTurn = false;
+    //private boolean autoTurn = false;
 
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
@@ -61,11 +66,22 @@ public class Robot extends TimedRobot {
 
     private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
+    // uhhhhhhh utrasonic stuff by michael i just copied from the documentation cause its basically the same implementation
+    private final MedianFilter m_filter = new MedianFilter(5);
+    private final Ultrasonic m_ultrasonic = new Ultrasonic(0, 1);
+    private final DifferentialDrive m_robotDrive = new DifferentialDrive(leftDrive::set, rightDrive::set);
+    private final PIDController m_pidController = new PIDController(0.001, 0.0, 0.0);
+    
+
     /**
      * This function is run when the robot is first started up and should be used for any
      * initialization code.
      */
-    public Robot() {}
+    public Robot()
+    {
+        SendableRegistry.addChild(m_robotDrive, leftDrive);
+        SendableRegistry.addChild(m_robotDrive, rightDrive);
+    }
 
     /**
      * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
@@ -103,14 +119,24 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
-        // CameraServer.startAutomaticCapture();
+        // why was this commented out you little piece of shit
+        CameraServer.startAutomaticCapture();
+
+        m_pidController.setSetpoint(3.0);
     }
 
     /** This function is called periodically during autonomous. */
     @Override
     public void autonomousPeriodic() {
-        encoderRotations = testEncoder.getDistance();
-        SmartDashboard.putNumber("test Encoder Value", encoderRotations);
+        //this was for the test encoder
+        //encoderRotations = testEncoder.getDistance();
+        //SmartDashboard.putNumber("test Encoder Value", encoderRotations);
+
+        double measurement = m_ultrasonic.getRangeMM();
+        double filteredMeasurement = m_filter.calculate(measurement);
+        double pidOutput = m_pidController.calculate(filteredMeasurement);
+
+        m_robotDrive.arcadeDrive(pidOutput, 0, false);
     }
 
     /** This function is called once when teleop is enabled. */
@@ -122,6 +148,7 @@ public class Robot extends TimedRobot {
         // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
         StatusSignal<Angle> signal = kraken.getPosition();
         Angle angle = signal.getValue();
+        Shuffleboard.getTab("Sensors").add(m_ultrasonic);
         SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
         SmartDashboard.putString("toString", angle.toString());
 
@@ -138,6 +165,7 @@ public class Robot extends TimedRobot {
 
     // *****************************************************************
     // Temporarily named to `teleopPeriodicTank` to test our new sensors
+    // in the current `teleopPeriodic`.
     // *****************************************************************
     public void teleopPeriodicTank() {
         double m_gyro_degrees = m_gyro.getRotation2d().getDegrees();
