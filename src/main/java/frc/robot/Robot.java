@@ -7,6 +7,7 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.hardware.core.CoreCANcoder;
 
 import com.studica.frc.AHRS.NavXComType;
 import com.studica.frc.AHRS;
@@ -40,29 +41,41 @@ public class Robot extends TimedRobot {
     // ------ Drivetrain Control ------ //
     private final WPI_TalonSRX leftDrive = new WPI_TalonSRX(0);  // this one was initially 5 //
     private final WPI_TalonSRX rightDrive = new WPI_TalonSRX(3); // this one was 3, works //
-    // private final TalonFX kraken = new TalonFX(7);
-    private final TalonFX kraken = new TalonFX(4);
+
+    private DifferentialDrive robotDrive = new DifferentialDrive(leftDrive, rightDrive);
+
+
+    // ------ Swerve Control ------ //
+    private static TalonFX frontLeftSpeedFX = new TalonFX(1);
+    private static TalonFX frontRightSpeedFX = new TalonFX(4);
+    private static TalonFX backLeftSpeedFX = new TalonFX(7);
+    private static TalonFX backRightSpeedFX = new TalonFX(10);
+
+    private static TalonFX frontLeftDirectionFX = new TalonFX(2);
+    private static TalonFX frontRightDirectionFX = new TalonFX(5);
+    private static TalonFX backLeftDirectionFX = new TalonFX(8);
+    private static TalonFX backRightDirectionFX = new TalonFX(11);
+
+    private static CoreCANcoder frontLeftEncoder = new CoreCANcoder(0);
+    private static CoreCANcoder frontRightEncoder = new CoreCANcoder(3);
+    private static CoreCANcoder backLeftEncoder = new CoreCANcoder(6);
+    private static CoreCANcoder backRightEncoder = new CoreCANcoder(9);
 
     // encoder thingy
+    /* 
     private final Encoder testEncoder = new Encoder(
         1,
         0,
         false,
         Encoder.EncodingType.k2X
     );
+    */
 
     // ------ Gyro ------ //
-
-    private DifferentialDrive robotDrive = new DifferentialDrive(leftDrive, rightDrive);
-    // private double encoderRotations = 0.0;
-
-    private ADXRS450_Gyro m_gyro = new ADXRS450_Gyro();
-    //private boolean autoTurn = false;
-
+    private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
-
 
     private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
@@ -91,27 +104,20 @@ public class Robot extends TimedRobot {
      * SmartDashboard integrated updating.
      */
     @Override
-    public void robotPeriodic() {}
+    public void robotPeriodic() {
 
-    /**
-     * This autonomous (along with the chooser code above) shows how to select between different
-     * autonomous modes using the dashboard. The sendable chooser code works with the Java
-     * SmartDashboard. If you prefer the LabVIEW Dashboard, remove all of the chooser code and
-     * uncomment the getString line to get the auto name from the text box below the Gyro
-     *
-     * <p>You can add additional auto modes by adding additional comparisons to the switch structure
-     * below with additional strings. If using the SendableChooser make sure to add them to the
-     * chooser code above as well.
-     */
+    }
 
     @Override
     public void robotInit() {
-        m_gyro.reset();
-        m_gyro.calibrate();
+        // Setup for ADXR Gyro
+        adxrGyro.reset();
+        adxrGyro.calibrate();
 
+        // Setup for NavX Gyro
         navxMxp.reset();
 
-        testEncoder.reset();
+        // testEncoder.reset();
 
 	    rightDrive.setInverted(true);
 	    CameraServer.startAutomaticCapture(0);
@@ -119,7 +125,6 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
-        // why was this commented out you little piece of shit
         CameraServer.startAutomaticCapture();
 
         m_pidController.setSetpoint(3.0);
@@ -143,6 +148,7 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopInit() {}
 
+    /* 
     @Override
     public void teleopPeriodic() {
         // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
@@ -153,13 +159,14 @@ public class Robot extends TimedRobot {
         SmartDashboard.putString("toString", angle.toString());
 
         // Getting data from original gyro.
-        double gyroDegrees = m_gyro.getRotation2d().getDegrees();
+        double gyroDegrees = adxrGyro.getRotation2d().getDegrees();
         SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
 
         // Getting angle from NavX
         double navXAngle = navxMxp.getAngle();
         SmartDashboard.putNumber("gryo2Degrees", navXAngle);
     }
+        */
 
     /** This function is called periodically during operator control. */
 
@@ -167,23 +174,30 @@ public class Robot extends TimedRobot {
     // Temporarily named to `teleopPeriodicTank` to test our new sensors
     // in the current `teleopPeriodic`.
     // *****************************************************************
-    public void teleopPeriodicTank() {
-        double m_gyro_degrees = m_gyro.getRotation2d().getDegrees();
-        if(m_gyro_degrees < 360.0 && m_gyro_degrees > -360.0){
-            m_gyro_degrees += 360.0;
+    public void teleopPeriodic() {
+        double adxrGyro_degrees = adxrGyro.getRotation2d().getDegrees();
+        if(adxrGyro_degrees < 360.0 && adxrGyro_degrees > -360.0){
+            adxrGyro_degrees += 360.0;
         }
-        else if(m_gyro_degrees < -360.0){
-            m_gyro_degrees += 360.0 * Math.abs(m_gyro_degrees) / 360;
+        else if(adxrGyro_degrees < -360.0){
+            adxrGyro_degrees += 360.0 * Math.abs(adxrGyro_degrees) / 360;
         }
-        double converted_gyro = Math.abs(m_gyro_degrees) % 360.0;
+        double converted_gyro = Math.abs(adxrGyro_degrees) % 360.0;
 
         SmartDashboard.putNumber("gyroRotation", converted_gyro);
 
-        double throttle = 0.5;
+        double throttle = 0.25;
         double leftJoystick = controllerRed.getLeftY();
         double rightJoystick = controllerRed.getRightX();
 
-        robotDrive.tankDrive(leftJoystick * throttle, rightJoystick * throttle);
+        frontLeftSpeedFX.set(throttle * leftJoystick);
+        frontLeftDirectionFX.set(throttle * rightJoystick);
+
+        StatusSignal<Angle> flSignal = frontLeftEncoder.getAbsolutePosition();
+        Angle flAngle = flSignal.getValue();
+        SmartDashboard.putString("FL Angle", flAngle.toString());
+
+
         /*
         turnToOrigin(0.0, converted_gyro, 10);
 
