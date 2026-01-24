@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
-import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.core.CoreCANcoder;
 
@@ -15,35 +13,17 @@ import com.studica.frc.AHRS;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.MedianFilter;
-import edu.wpi.first.units.measure.Angle;
-import edu.wpi.first.util.sendable.SendableRegistry;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
-import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.XboxController;
-import edu.wpi.first.wpilibj.drive.DifferentialDrive;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-/**
- * The methods in this class are called automatically corresponding to each mode, as described in
- * the TimedRobot documentation. If you change the name of this class or the package after creating
- * this project, you must also update the Main.java file in the project.
- */
 public class Robot extends TimedRobot {
     // ------ Game Controller ------ //
     // IMPORTANT: Plug the red labelled controller into the *RED* port *FIRST*. And
     // plug the green labelled controller into the *GREEN* port *SECOND*.
     private final XboxController controllerRed = new XboxController(0);
-    //private final XboxController controllerGreen = new XboxController(1);
-
-    // ------ Drivetrain Control ------ //
-    private final WPI_TalonSRX leftDrive = new WPI_TalonSRX(0);  // this one was initially 5 //
-    private final WPI_TalonSRX rightDrive = new WPI_TalonSRX(3); // this one was 3, works //
-
-    private DifferentialDrive robotDrive = new DifferentialDrive(leftDrive, rightDrive);
-
 
     // ------ Swerve Control ------ //
     private static TalonFX frontLeftSpeedFX = new TalonFX(1);
@@ -61,14 +41,25 @@ public class Robot extends TimedRobot {
     private static CoreCANcoder backLeftEncoder = new CoreCANcoder(6);
     private static CoreCANcoder backRightEncoder = new CoreCANcoder(9);
 
+    int currMotor = 0;
+    TalonFX allDirectionMotors[] = {
+		frontLeftDirectionFX, frontRightDirectionFX,
+		backLeftDirectionFX, backRightDirectionFX};
+    TalonFX allSpeedMotors[] = {
+		frontLeftSpeedFX, frontRightSpeedFX,
+		backLeftSpeedFX, backRightSpeedFX};
+	CoreCANcoder allWheelEncoders[] = {
+		frontLeftEncoder, frontRightEncoder,
+		backLeftEncoder, backRightEncoder};
+
     // encoder thingy
-    /* 
-    private final Encoder testEncoder = new Encoder(
-        1,
-        0,
-        false,
-        Encoder.EncodingType.k2X
-    );
+    /*
+	  private final Encoder testEncoder = new Encoder(
+	  1,
+	  0,
+	  false,
+	  Encoder.EncodingType.k2X
+	  );
     */
 
     // ------ Gyro ------ //
@@ -82,31 +73,12 @@ public class Robot extends TimedRobot {
     // uhhhhhhh utrasonic stuff by michael i just copied from the documentation cause its basically the same implementation
     private final MedianFilter m_filter = new MedianFilter(5);
     private final Ultrasonic m_ultrasonic = new Ultrasonic(0, 1);
-    private final DifferentialDrive m_robotDrive = new DifferentialDrive(leftDrive::set, rightDrive::set);
     private final PIDController m_pidController = new PIDController(0.001, 0.0, 0.0);
-    
 
-    /**
-     * This function is run when the robot is first started up and should be used for any
-     * initialization code.
-     */
-    public Robot()
-    {
-        SendableRegistry.addChild(m_robotDrive, leftDrive);
-        SendableRegistry.addChild(m_robotDrive, rightDrive);
-    }
+    public Robot() {}
 
-    /**
-     * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics
-     * that you want ran during disabled, autonomous, teleoperated and test.
-     *
-     * <p>This runs after the mode specific periodic functions, but before LiveWindow and
-     * SmartDashboard integrated updating.
-     */
     @Override
-    public void robotPeriodic() {
-
-    }
+    public void robotPeriodic() {}
 
     @Override
     public void robotInit() {
@@ -119,7 +91,6 @@ public class Robot extends TimedRobot {
 
         // testEncoder.reset();
 
-	    rightDrive.setInverted(true);
 	    CameraServer.startAutomaticCapture(0);
     }
 
@@ -130,7 +101,6 @@ public class Robot extends TimedRobot {
         m_pidController.setSetpoint(3.0);
     }
 
-    /** This function is called periodically during autonomous. */
     @Override
     public void autonomousPeriodic() {
         //this was for the test encoder
@@ -140,71 +110,83 @@ public class Robot extends TimedRobot {
         double measurement = m_ultrasonic.getRangeMM();
         double filteredMeasurement = m_filter.calculate(measurement);
         double pidOutput = m_pidController.calculate(filteredMeasurement);
-
-        m_robotDrive.arcadeDrive(pidOutput, 0, false);
     }
 
-    /** This function is called once when teleop is enabled. */
     @Override
     public void teleopInit() {}
 
-    /* 
-    @Override
-    public void teleopPeriodic() {
-        // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
-        StatusSignal<Angle> signal = kraken.getPosition();
-        Angle angle = signal.getValue();
-        Shuffleboard.getTab("Sensors").add(m_ultrasonic);
-        SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
-        SmartDashboard.putString("toString", angle.toString());
+    /*
+	  @Override
+	  public void teleopPeriodic() {
+	  // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
+	  StatusSignal<Angle> signal = kraken.getPosition();
+	  Angle angle = signal.getValue();
+	  Shuffleboard.getTab("Sensors").add(m_ultrasonic);
+	  SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
+	  SmartDashboard.putString("toString", angle.toString());
 
-        // Getting data from original gyro.
-        double gyroDegrees = adxrGyro.getRotation2d().getDegrees();
-        SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
+	  // Getting data from original gyro.
+	  double gyroDegrees = adxrGyro.getRotation2d().getDegrees();
+	  SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
 
-        // Getting angle from NavX
-        double navXAngle = navxMxp.getAngle();
-        SmartDashboard.putNumber("gryo2Degrees", navXAngle);
-    }
-        */
+	  // Getting angle from NavX
+	  double navXAngle = navxMxp.getAngle();
+	  SmartDashboard.putNumber("gryo2Degrees", navXAngle);
+	  }
+	*/
 
-    /** This function is called periodically during operator control. */
-
-    // *****************************************************************
-    // Temporarily named to `teleopPeriodicTank` to test our new sensors
-    // in the current `teleopPeriodic`.
-    // *****************************************************************
-    public void teleopPeriodic() {
-        double adxrGyro_degrees = adxrGyro.getRotation2d().getDegrees();
+	public double getAdxrGyro() {
+		double adxrGyro_degrees = adxrGyro.getRotation2d().getDegrees();
         if(adxrGyro_degrees < 360.0 && adxrGyro_degrees > -360.0){
             adxrGyro_degrees += 360.0;
         }
         else if(adxrGyro_degrees < -360.0){
             adxrGyro_degrees += 360.0 * Math.abs(adxrGyro_degrees) / 360;
         }
-        double converted_gyro = Math.abs(adxrGyro_degrees) % 360.0;
+        return Math.abs(adxrGyro_degrees) % 360.0;
+	}
 
-        SmartDashboard.putNumber("gyroRotation", converted_gyro);
+	public double wheelEncoderToSwerveInput(CoreCANcoder encoder) {
+		double angleRadians = encoder.getAbsolutePosition().getValue().baseUnitMagnitude();
+		return Math.toDegrees(angleRadians * -1);
+	}
+
+    /** This function is called periodically during operator control. */
+    // *****************************************************************
+    // Temporarily named to `teleopPeriodicTank` to test our new sensors
+    // in the current `teleopPeriodic`.
+    // *****************************************************************
+    public void teleopPeriodic() {
+		double convertedGyro = getAdxrGyro();
+        SmartDashboard.putNumber("gyroRotation", convertedGyro);
 
         double throttle = 0.25;
         double leftJoystick = controllerRed.getLeftY();
         double rightJoystick = controllerRed.getRightX();
 
-        frontLeftSpeedFX.set(throttle * leftJoystick);
-        frontLeftDirectionFX.set(throttle * rightJoystick);
+	    if(controllerRed.getRightBumperButtonPressed()) {
+	        currMotor = (currMotor + 1) % 4;
+	    }
+	    SmartDashboard.putNumber("currMotor", currMotor);
 
-        StatusSignal<Angle> flSignal = frontLeftEncoder.getAbsolutePosition();
-        Angle flAngle = flSignal.getValue();
-        SmartDashboard.putString("FL Angle", flAngle.toString());
+	    double reverseSpeedDirection = 1;
+	    if(currMotor == 0 || currMotor == 2) {
+			reverseSpeedDirection = -1;
+	    }
 
+        allSpeedMotors[currMotor].set(throttle * leftJoystick * reverseSpeedDirection);
+	    allDirectionMotors[currMotor].set(throttle * rightJoystick);
 
+		for(int i = 0; i < allWheelEncoders.length; i++) {
+			SmartDashboard.putNumber( "Motor " + i + " Angle",
+									  wheelEncoderToSwerveInput(allWheelEncoders[i]));
+		}
         /*
-        turnToOrigin(0.0, converted_gyro, 10);
+		  turnToOrigin(0.0, convertedGyro, 10);
 
-        if (controllerRed.getAButtonPressed() && autoTurn == false) {
-            robotDrive.tankDrive(0.5, -0.5);
-        }
-        */
+		  if (controllerRed.getAButtonPressed() && autoTurn == false) {
+		  robotDrive.tankDrive(0.5, -0.5);
+		  }
 
         if (controllerRed.getAButtonPressed() && is_auto_turning == false){
             is_auto_turning = true;
@@ -215,54 +197,48 @@ public class Robot extends TimedRobot {
             robotDrive.arcadeDrive(leftJoystick * throttle, -rightJoystick * throttle);
         }
         else{
-            turn_to_degree(converted_gyro, 0.0, 0.5, 10.0);
+            turn_to_degree(convertedGyro, 0.0, 0.5, 10.0);
         }
-
-
-        //this.leftDrive.set(-controllerRed.getLeftY()*speed);
+		*/
     }
+
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
-            double diff = (target_degree - current_degree) % 360;
-            if(-accuracy < diff && diff < accuracy) {
-                is_auto_turning = false;
-                return;
-            }
-            if (first_auto_turn_call == true){
-                auto_turn_direct = diff/Math.abs(diff);
-                if(diff < -180 || diff > 180){
-                    auto_turn_direct *= -1.0;
-                }
-                first_auto_turn_call = false;
-            }
+		double diff = (target_degree - current_degree) % 360;
+		if(-accuracy < diff && diff < accuracy) {
+			is_auto_turning = false;
+			return;
+		}
+		if (first_auto_turn_call == true){
+			auto_turn_direct = diff/Math.abs(diff);
+			if(diff < -180 || diff > 180){
+				auto_turn_direct *= -1.0;
+			}
+			first_auto_turn_call = false;
+		}
 
-
-            SmartDashboard.putNumber("diff", diff);
-            SmartDashboard.putNumber("direction", auto_turn_direct);
-            robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
+		SmartDashboard.putNumber("diff", diff);
+		SmartDashboard.putNumber("direction", auto_turn_direct);
+		// robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
     }
+}
 
-
-    /** This function is called once when the robot is disabled. */
+/*
+  // Unused function headers.
     @Override
     public void disabledInit() {}
 
-    /** This function is called periodically when disabled. */
     @Override
     public void disabledPeriodic() {}
 
-    /** This function is called once when test mode is enabled. */
     @Override
     public void testInit() {}
 
-    /** This function is called periodically during test mode. */
     @Override
     public void testPeriodic() {}
 
-    /** This function is called once when the robot is first started up. */
     @Override
     public void simulationInit() {}
 
-    /** This function is called periodically whilst in simulation. */
     @Override
     public void simulationPeriodic() {}
-}
+*/
