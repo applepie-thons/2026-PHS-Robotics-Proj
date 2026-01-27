@@ -61,16 +61,20 @@ public class Robot extends TimedRobot {
 	  Encoder.EncodingType.k2X
 	  );
     */
+    // ----- Deadzone + Hysteresis ----- // 
+    private double deadzone = 0.2;
+    private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
 
     // ------ Gyro ------ //
     private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
+    
 
     private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
-    // uhhhhhhh utrasonic stuff by michael i just copied from the documentation cause its basically the same implementation
+    // uhhhhhhh ultrasonic stuff by michael i just copied from the documentation cause its basically the same implementation
     private final MedianFilter m_filter = new MedianFilter(5);
     private final Ultrasonic m_ultrasonic = new Ultrasonic(0, 1);
     private final PIDController m_pidController = new PIDController(0.001, 0.0, 0.0);
@@ -161,8 +165,17 @@ public class Robot extends TimedRobot {
         SmartDashboard.putNumber("gyroRotation", convertedGyro);
 
         double throttle = 0.25;
-        double leftJoystick = controllerRed.getLeftY();
+        double leftJoystickX = controllerRed.getLeftX();
+        double leftJoystickY = controllerRed.getLeftY();
         double rightJoystick = controllerRed.getRightX();
+
+        double joystickMagnitude = Math.sqrt(Math.pow(leftJoystickX, 2) + Math.pow(leftJoystickY, 2));
+        
+        /* commented out because this deadzone will only work for swerve drive and cause problems for tank
+        if(deadzone > joystickMagnitude){
+          throttle = 0.0;
+        }
+        */
 
 	    if(controllerRed.getRightBumperButtonPressed()) {
 	        currMotor = (currMotor + 1) % 4;
@@ -174,7 +187,7 @@ public class Robot extends TimedRobot {
 			reverseSpeedDirection = -1;
 	    }
 
-        allSpeedMotors[currMotor].set(throttle * leftJoystick * reverseSpeedDirection);
+        allSpeedMotors[currMotor].set(throttle * leftJoystickY * reverseSpeedDirection);
 	    allDirectionMotors[currMotor].set(throttle * rightJoystick);
 
 		for(int i = 0; i < allWheelEncoders.length; i++) {
@@ -200,6 +213,10 @@ public class Robot extends TimedRobot {
             turn_to_degree(convertedGyro, 0.0, 0.5, 10.0);
         }
 		*/
+
+
+    // keep at bottom so it only updates at the end and is usable in entire function
+    last_update_stickMagnitude = joystickMagnitude;
     }
 
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
