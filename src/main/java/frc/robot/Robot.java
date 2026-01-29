@@ -15,6 +15,7 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -62,8 +63,17 @@ public class Robot extends TimedRobot {
 	  );
     */
     // ----- Deadzone + Hysteresis ----- // 
+    // hysteresis currently disabled because josh likes max speed better
     private double deadzone = 0.2;
     private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
+    private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
+    private double increase_speed = 5.5; // how fast the speed increases during hysteresis
+    private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
+
+
+    // ---- deltatime ----//
+    private double last_update_timer = 0.0;
+    private double deltaTime = 0.0;
 
     // ------ Gyro ------ //
     private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
@@ -161,6 +171,13 @@ public class Robot extends TimedRobot {
     // in the current `teleopPeriodic`.
     // *****************************************************************
     public void teleopPeriodic() {
+
+      //calculate deltaTime
+      double currentTime = Timer.getFPGATimestamp();
+      deltaTime = currentTime - last_update_timer;
+      SmartDashboard.putNumber("deltaTime", deltaTime);
+
+
 		double convertedGyro = getAdxrGyro();
         SmartDashboard.putNumber("gyroRotation", convertedGyro);
 
@@ -186,6 +203,21 @@ public class Robot extends TimedRobot {
 	    if(currMotor == 0 || currMotor == 2) {
 			reverseSpeedDirection = -1;
 	    }
+
+        // calculate joystick speed
+        double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
+        SmartDashboard.putNumber("joystick_diff", joystick_diff);
+
+        if(joystick_diff > diff_threshold){
+          hysteresis_mult = 0.0;
+        }
+        
+        if(hysteresis_mult < 1.0){
+          calculate_hysteresis();
+        }
+        else{
+          hysteresis_mult = 1.0;
+        }
 
         allSpeedMotors[currMotor].set(throttle * leftJoystickY * reverseSpeedDirection);
 	    allDirectionMotors[currMotor].set(throttle * rightJoystick);
@@ -217,7 +249,15 @@ public class Robot extends TimedRobot {
 
     // keep at bottom so it only updates at the end and is usable in entire function
     last_update_stickMagnitude = joystickMagnitude;
+    last_update_timer = Timer.getFPGATimestamp();
     }
+
+
+    private void calculate_hysteresis(){
+      hysteresis_mult += increase_speed * deltaTime;
+      SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
+    }
+
 
     private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
 		double diff = (target_degree - current_degree) % 360;
