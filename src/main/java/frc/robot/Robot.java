@@ -16,9 +16,11 @@ import edu.wpi.first.math.filter.MedianFilter;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.Ultrasonic;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.RobotController;;
 
 public class Robot extends TimedRobot {
     // ------ Game Controller ------ //
@@ -80,19 +82,19 @@ public class Robot extends TimedRobot {
     private boolean is_auto_turning = false;
     private boolean first_auto_turn_call = true;
     private double auto_turn_direct = 1.0;
+
+    // ------ Sonar ------ //
+    public AnalogInput ultrasonicSensor = new AnalogInput(0);
     
 
     private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
-    // uhhhhhhh ultrasonic stuff by michael i just copied from the documentation cause its basically the same implementation
-    private final MedianFilter m_filter = new MedianFilter(5);
-    private final Ultrasonic m_ultrasonic = new Ultrasonic(0, 1);
-    private final PIDController m_pidController = new PIDController(0.001, 0.0, 0.0);
-
     public Robot() {}
 
     @Override
-    public void robotPeriodic() {}
+    public void robotPeriodic() {
+      voltageScaleFactor = 5 / RobotController.getVoltage5V();
+    }
 
     @Override
     public void robotInit() {
@@ -111,8 +113,6 @@ public class Robot extends TimedRobot {
     @Override
     public void autonomousInit() {
         CameraServer.startAutomaticCapture();
-
-        m_pidController.setSetpoint(3.0);
     }
 
     @Override
@@ -120,10 +120,6 @@ public class Robot extends TimedRobot {
         //this was for the test encoder
         //encoderRotations = testEncoder.getDistance();
         //SmartDashboard.putNumber("test Encoder Value", encoderRotations);
-
-        double measurement = m_ultrasonic.getRangeMM();
-        double filteredMeasurement = m_filter.calculate(measurement);
-        double pidOutput = m_pidController.calculate(filteredMeasurement);
     }
 
     @Override
@@ -178,7 +174,7 @@ public class Robot extends TimedRobot {
       SmartDashboard.putNumber("deltaTime", deltaTime);
 
 
-		double convertedGyro = getAdxrGyro();
+		  double convertedGyro = getAdxrGyro();
         SmartDashboard.putNumber("gyroRotation", convertedGyro);
 
         double throttle = 0.25;
@@ -222,10 +218,11 @@ public class Robot extends TimedRobot {
         allSpeedMotors[currMotor].set(throttle * leftJoystickY * reverseSpeedDirection);
 	    allDirectionMotors[currMotor].set(throttle * rightJoystick);
 
-		for(int i = 0; i < allWheelEncoders.length; i++) {
-			SmartDashboard.putNumber( "Motor " + i + " Angle",
-									  wheelEncoderToSwerveInput(allWheelEncoders[i]));
-		}
+		  for(int i = 0; i < allWheelEncoders.length; i++)
+      {
+			  SmartDashboard.putNumber( "Motor " + i + " Angle", 
+        wheelEncoderToSwerveInput(allWheelEncoders[i]));
+		  }
         /*
 		  turnToOrigin(0.0, convertedGyro, 10);
 
@@ -247,9 +244,11 @@ public class Robot extends TimedRobot {
 		*/
 
 
-    // keep at bottom so it only updates at the end and is usable in entire function
-    last_update_stickMagnitude = joystickMagnitude;
-    last_update_timer = Timer.getFPGATimestamp();
+      // keep at bottom so it only updates at the end and is usable in entire function
+      last_update_stickMagnitude = joystickMagnitude;
+      last_update_timer = Timer.getFPGATimestamp();
+
+      SmartDashboard.putNumber("Sonar Sensor Range", ultrasonicSensor.getVoltage());
     }
 
 
