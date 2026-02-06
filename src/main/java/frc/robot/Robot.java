@@ -20,7 +20,11 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.AnalogInput;
-import edu.wpi.first.wpilibj.RobotController;;
+import edu.wpi.first.wpilibj.RobotController;
+
+import frc.robot.SwerveDrive;
+import frc.robot.SwerveModule;
+import frc.robot.Constants;
 
 public class Robot extends TimedRobot {
     // ------ Game Controller ------ //
@@ -93,7 +97,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic() {
-      voltageScaleFactor = 5 / RobotController.getVoltage5V();
+      
     }
 
     @Override
@@ -258,7 +262,7 @@ public class Robot extends TimedRobot {
     }
 
 
-    private void turn_to_degree(double current_degree, double target_degree, double speed, double accuracy) {
+    private void turn_to_degree_old(double current_degree, double target_degree, double speed, double accuracy) {
 		double diff = (target_degree - current_degree) % 360;
 		if(-accuracy < diff && diff < accuracy) {
 			is_auto_turning = false;
@@ -276,6 +280,8 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("direction", auto_turn_direct);
 		// robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
     }
+
+    
 }
 
 /*
