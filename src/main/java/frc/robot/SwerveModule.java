@@ -113,7 +113,7 @@ public class SwerveModule {
 	}
 
 	/***********************************************************************************/
-	/* Helper functions/variables for debugging */
+	/* Helper functions/variables for debugging
 	/***********************************************************************************/
 	public void setSpeedDirect(double speed) {
 		int reverse = reverseSpeedMotor ? -1 : 1;

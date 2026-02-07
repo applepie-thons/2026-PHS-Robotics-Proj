@@ -134,4 +134,28 @@ public class SwerveDrive {
 		double deg = rad * (180 / Math.PI);
 		return deg;
 	}
+
+	/***********************************************************************************/
+	/* Helper functions/variables for debugging
+	/***********************************************************************************/
+	public void setModuleDirect(String moduleId, double speedMotorInput, double directionMotorInput) {
+		switch(moduleId) {
+		case "lf":
+			lfModule.setSpeedDirect(speedMotorInput);
+			lfModule.setDirectionDirect(directionMotorInput);
+			break;
+		case "rf":
+			rfModule.setSpeedDirect(speedMotorInput);
+			rfModule.setDirectionDirect(directionMotorInput);
+			break;
+		case "lb":
+			lbModule.setSpeedDirect(speedMotorInput);
+			lbModule.setDirectionDirect(directionMotorInput);
+			break;
+		case "rb":
+			rbModule.setSpeedDirect(speedMotorInput);
+			rbModule.setDirectionDirect(directionMotorInput);
+			break;
+		}
+	}
 }
