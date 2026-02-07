@@ -12,115 +12,109 @@ import frc.robot.Constants.DriveConsts;
 import frc.robot.Constants.ModuleConsts;
 
 public class SwerveModule {
-    private final TalonFX speedMotor;
-    private final TalonFX directionMotor;
-    // Tracks the current angle of motor. This retains its values over a powercycle,
-    // unlike the TalonFX's builtin encoder.
-    private final CoreCANcoder absoluteEncoder;
+	private final TalonFX speedMotor;
+	private final TalonFX directionMotor;
+	// Tracks the current angle of motor. This retains its values over a powercycle,
+	// unlike the TalonFX's builtin encoder.
+	private final CoreCANcoder absoluteEncoder;
 
-    private final boolean reverseSpeedMotor;
-    private final boolean reverseDirectionMotor;
-    private final boolean reverseAbsoluteEncoder;
+	private final boolean reverseSpeedMotor;
+	private final boolean reverseDirectionMotor;
+	private final boolean reverseAbsoluteEncoder;
 	private final boolean reverseSpeedEncoder;
 
-    private final PIDController directionController;
+	private final PIDController directionController;
 
-    // Used to tell modules apart in SmartDashboard logging.
+	// Used to tell modules apart in SmartDashboard logging.
 	String moduleName;
 
-    public SwerveModule(String moduleName, int speedMotorId, int directionMotorId,
-						int absoluteEncoderId, boolean reverseSpeedMotor,
-						boolean reverseDirectionMotor, boolean reverseAbsoluteEncoder,
-						boolean reverseSpeedEncoder) {
-        this.speedMotor = new TalonFX(speedMotorId);
-        this.directionMotor = new TalonFX(directionMotorId);
-        this.absoluteEncoder = new CoreCANcoder(absoluteEncoderId);
+	public SwerveModule(String moduleName, int speedMotorId, int directionMotorId,
+			int absoluteEncoderId, boolean reverseSpeedMotor,
+			boolean reverseDirectionMotor, boolean reverseAbsoluteEncoder,
+			boolean reverseSpeedEncoder) {
+		this.speedMotor = new TalonFX(speedMotorId);
+		this.directionMotor = new TalonFX(directionMotorId);
+		this.absoluteEncoder = new CoreCANcoder(absoluteEncoderId);
 
-        this.reverseSpeedMotor = reverseSpeedMotor;
-        this.reverseDirectionMotor = reverseDirectionMotor;
-        this.reverseAbsoluteEncoder = reverseAbsoluteEncoder;
+		this.reverseSpeedMotor = reverseSpeedMotor;
+		this.reverseDirectionMotor = reverseDirectionMotor;
+		this.reverseAbsoluteEncoder = reverseAbsoluteEncoder;
 		this.reverseSpeedEncoder = reverseSpeedEncoder;
 
-        this.directionController = new PIDController(ModuleConsts.directionP, 0, 0);
-        this.directionController.enableContinuousInput(-Math.PI, Math.PI);
+		this.directionController = new PIDController(ModuleConsts.directionP, 0, 0);
+		this.directionController.enableContinuousInput(-Math.PI, Math.PI);
 
 		this.moduleName = moduleName;
 
-        // Reset the speedMotor's encoder.
-        this.speedMotor.setPosition(0);
-    }
+		// Reset the speedMotor's encoder.
+		this.speedMotor.setPosition(0);
+	}
 
-    public double getDrivePosition() {
-        double motorRotations =
-            this.speedMotor.getPosition().getValue().baseUnitMagnitude();
+	public double getDrivePosition() {
+		double motorRotations = this.speedMotor.getPosition().getValue().baseUnitMagnitude();
 
-        // Do the following unit conversion:
-        //     (MotorRotation) * (Meters / MotorRotation) -> (Meters)
-        double meters =
-            motorRotations * ModuleConsts.speedMotorRotationToMeters;
+		// Do the following unit conversion:
+		// (MotorRotation) * (Meters / MotorRotation) -> (Meters)
+		double meters = motorRotations * ModuleConsts.speedMotorRotationToMeters;
 
-        int reverseFactor = (this.reverseSpeedEncoder ? -1 : 1);
-        return meters * reverseFactor;
-    }
+		int reverseFactor = (this.reverseSpeedEncoder ? -1 : 1);
+		return meters * reverseFactor;
+	}
 
-    public double getDriveVelocity() {
-        double motorRotationsPerSec =
-            this.speedMotor.getVelocity().getValue().baseUnitMagnitude();
+	public double getDriveVelocity() {
+		double motorRotationsPerSec = this.speedMotor.getVelocity().getValue().baseUnitMagnitude();
 
-        // Do the following unit conversion:
-        //     (MotorRotation / Sec) * (Meters / MotorRotation) -> (Meters / Sec)
-        double metersPerSec =
-            motorRotationsPerSec * ModuleConsts.speedMotorRotationToMeters;
+		// Do the following unit conversion:
+		// (MotorRotation / Sec) * (Meters / MotorRotation) -> (Meters / Sec)
+		double metersPerSec = motorRotationsPerSec * ModuleConsts.speedMotorRotationToMeters;
 
-        int reverseFactor = (this.reverseSpeedEncoder ? -1 : 1);
-        return metersPerSec * reverseFactor;
-    }
+		int reverseFactor = (this.reverseSpeedEncoder ? -1 : 1);
+		return metersPerSec * reverseFactor;
+	}
 
-    public double getAbsoluteEncoderRad() {
-        double angleRad =
-            this.absoluteEncoder.getAbsolutePosition().getValue().baseUnitMagnitude();
-        return (this.reverseAbsoluteEncoder ? -angleRad : angleRad);
-    }
+	public double getAbsoluteEncoderRad() {
+		double angleRad = this.absoluteEncoder.getAbsolutePosition().getValue().baseUnitMagnitude();
+		return (this.reverseAbsoluteEncoder ? -angleRad : angleRad);
+	}
 
-    public SwerveModuleState getState() {
-        return new SwerveModuleState(
-            getDriveVelocity(), new Rotation2d(getAbsoluteEncoderRad()));
-    }
+	public SwerveModuleState getState() {
+		return new SwerveModuleState(
+				getDriveVelocity(), new Rotation2d(getAbsoluteEncoderRad()));
+	}
 
-    public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
-        // This "if" condition prevents the wheels from swinging back to their
-        // neutral position when the joysticks are let go.
-        // TODO: The "0.001" may need to be increased depending on the behavior we
-        // observe when testing this.
-        if(ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.001) {
-            stop();
-            return;
-        }
+	public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
+		// This "if" condition prevents the wheels from swinging back to their
+		// neutral position when the joysticks are let go.
+		// TODO: The "0.001" may need to be increased depending on the behavior we
+		// observe when testing this.
+		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.001) {
+			stop();
+			return;
+		}
 
-        state.optimize(getState().angle);
+		state.optimize(getState().angle);
 
 		SmartDashboard.putNumber("DesiredAngle", state.angle.getDegrees());
 
-        double newSpeedMotorVal =
-            state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
-	    int speedReverse = reverseSpeedMotor ? -1 : 1;
-        speedMotor.set(newSpeedMotorVal * speedReverse);
+		double newSpeedMotorVal = state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
+		int speedReverse = reverseSpeedMotor ? -1 : 1;
+		speedMotor.set(newSpeedMotorVal * speedReverse);
 
-        double newDirectionMotorVal = directionController.calculate(
-            getAbsoluteEncoderRad(), state.angle.getRadians());
+		double newDirectionMotorVal = directionController.calculate(
+				getAbsoluteEncoderRad(), state.angle.getRadians());
 		SmartDashboard.putNumber("DirMotorVal", newDirectionMotorVal);
 		int directionReverse = reverseDirectionMotor ? -1 : 1;
-        directionMotor.set(newDirectionMotorVal * directionReverse);
-    }
+		directionMotor.set(newDirectionMotorVal * directionReverse);
+	}
 
-    public void stop() {
-        speedMotor.set(0);
-        directionMotor.set(0);
-    }
+	public void stop() {
+		speedMotor.set(0);
+		directionMotor.set(0);
+	}
 
-    /***********************************************************************************/
-    /*                      Helper functions/variables for debugging                   */
-    /***********************************************************************************/
+	/***********************************************************************************/
+	/* Helper functions/variables for debugging */
+	/***********************************************************************************/
 	public void setSpeedDirect(double speed) {
 		int reverse = reverseSpeedMotor ? -1 : 1;
 		speedMotor.set(speed * reverse);
@@ -132,12 +126,12 @@ public class SwerveModule {
 	}
 
 	public void log() {
-		SmartDashboard.putNumber( moduleName + " drivePosition",
-                                  getDrivePosition());
-		SmartDashboard.putNumber( moduleName + " driveVelocity",
-                                  getDriveVelocity());
-		SmartDashboard.putNumber( moduleName + " absEncoderDegrees",
-                                  getAbsoluteEncoderRad() * (180 / Math.PI));
+		SmartDashboard.putNumber(moduleName + " drivePosition",
+				getDrivePosition());
+		SmartDashboard.putNumber(moduleName + " driveVelocity",
+				getDriveVelocity());
+		SmartDashboard.putNumber(moduleName + " absEncoderDegrees",
+				getAbsoluteEncoderRad() * (180 / Math.PI));
 	}
 
 }

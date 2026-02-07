@@ -27,137 +27,137 @@ import frc.robot.SwerveModule;
 import frc.robot.Constants;
 
 public class Robot extends TimedRobot {
-    // ------ Game Controller ------ //
-    // IMPORTANT: Plug the red labelled controller into the *RED* port *FIRST*. And
-    // plug the green labelled controller into the *GREEN* port *SECOND*.
-    private final XboxController controllerRed = new XboxController(0);
+	// ------ Game Controller ------ //
+	// IMPORTANT: Plug the red labelled controller into the *RED* port *FIRST*. And
+	// plug the green labelled controller into the *GREEN* port *SECOND*.
+	private final XboxController controllerRed = new XboxController(0);
 
-    // ------ Swerve Control ------ //
-    private static TalonFX frontLeftSpeedFX = new TalonFX(1);
-    private static TalonFX frontRightSpeedFX = new TalonFX(4);
-    private static TalonFX backLeftSpeedFX = new TalonFX(7);
-    private static TalonFX backRightSpeedFX = new TalonFX(10);
+	// ------ Swerve Control ------ //
+	private static TalonFX frontLeftSpeedFX = new TalonFX(1);
+	private static TalonFX frontRightSpeedFX = new TalonFX(4);
+	private static TalonFX backLeftSpeedFX = new TalonFX(7);
+	private static TalonFX backRightSpeedFX = new TalonFX(10);
 
-    private static TalonFX frontLeftDirectionFX = new TalonFX(2);
-    private static TalonFX frontRightDirectionFX = new TalonFX(5);
-    private static TalonFX backLeftDirectionFX = new TalonFX(8);
-    private static TalonFX backRightDirectionFX = new TalonFX(11);
+	private static TalonFX frontLeftDirectionFX = new TalonFX(2);
+	private static TalonFX frontRightDirectionFX = new TalonFX(5);
+	private static TalonFX backLeftDirectionFX = new TalonFX(8);
+	private static TalonFX backRightDirectionFX = new TalonFX(11);
 
-    private static CoreCANcoder frontLeftEncoder = new CoreCANcoder(0);
-    private static CoreCANcoder frontRightEncoder = new CoreCANcoder(3);
-    private static CoreCANcoder backLeftEncoder = new CoreCANcoder(6);
-    private static CoreCANcoder backRightEncoder = new CoreCANcoder(9);
+	private static CoreCANcoder frontLeftEncoder = new CoreCANcoder(0);
+	private static CoreCANcoder frontRightEncoder = new CoreCANcoder(3);
+	private static CoreCANcoder backLeftEncoder = new CoreCANcoder(6);
+	private static CoreCANcoder backRightEncoder = new CoreCANcoder(9);
 
-    int currMotor = 0;
-    TalonFX allDirectionMotors[] = {
-		frontLeftDirectionFX, frontRightDirectionFX,
-		backLeftDirectionFX, backRightDirectionFX};
-    TalonFX allSpeedMotors[] = {
-		frontLeftSpeedFX, frontRightSpeedFX,
-		backLeftSpeedFX, backRightSpeedFX};
+	int currMotor = 0;
+	TalonFX allDirectionMotors[] = {
+			frontLeftDirectionFX, frontRightDirectionFX,
+			backLeftDirectionFX, backRightDirectionFX };
+	TalonFX allSpeedMotors[] = {
+			frontLeftSpeedFX, frontRightSpeedFX,
+			backLeftSpeedFX, backRightSpeedFX };
 	CoreCANcoder allWheelEncoders[] = {
-		frontLeftEncoder, frontRightEncoder,
-		backLeftEncoder, backRightEncoder};
+			frontLeftEncoder, frontRightEncoder,
+			backLeftEncoder, backRightEncoder };
 
-    // encoder thingy
-    /*
-	  private final Encoder testEncoder = new Encoder(
-	  1,
-	  0,
-	  false,
-	  Encoder.EncodingType.k2X
-	  );
-    */
-    // ----- Deadzone + Hysteresis ----- // 
-    // hysteresis currently disabled because josh likes max speed better
-    private double deadzone = 0.2;
-    private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
-    private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
-    private double increase_speed = 5.5; // how fast the speed increases during hysteresis
-    private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
+	// encoder thingy
+	/*
+	 * private final Encoder testEncoder = new Encoder(
+	 * 1,
+	 * 0,
+	 * false,
+	 * Encoder.EncodingType.k2X
+	 * );
+	 */
+	// ----- Deadzone + Hysteresis ----- //
+	// hysteresis currently disabled because josh likes max speed better
+	private double deadzone = 0.2;
+	private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
+	private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
+	private double increase_speed = 5.5; // how fast the speed increases during hysteresis
+	private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
 
+	// ---- deltatime ----//
+	private double last_update_timer = 0.0;
+	private double deltaTime = 0.0;
 
-    // ---- deltatime ----//
-    private double last_update_timer = 0.0;
-    private double deltaTime = 0.0;
+	// ------ Gyro ------ //
+	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
+	private boolean is_auto_turning = false;
+	private boolean first_auto_turn_call = true;
+	private double auto_turn_direct = 1.0;
 
-    // ------ Gyro ------ //
-    private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
-    private boolean is_auto_turning = false;
-    private boolean first_auto_turn_call = true;
-    private double auto_turn_direct = 1.0;
+	// ------ Sonar ------ //
+	public AnalogInput ultrasonicSensor = new AnalogInput(0);
 
-    // ------ Sonar ------ //
-    public AnalogInput ultrasonicSensor = new AnalogInput(0);
-    
+	private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
-    private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
+	public Robot() {
+	}
 
-    public Robot() {}
+	@Override
+	public void robotPeriodic() {
 
-    @Override
-    public void robotPeriodic() {
-      
-    }
+	}
 
-    @Override
-    public void robotInit() {
-        // Setup for ADXR Gyro
-        adxrGyro.reset();
-        adxrGyro.calibrate();
+	@Override
+	public void robotInit() {
+		// Setup for ADXR Gyro
+		adxrGyro.reset();
+		adxrGyro.calibrate();
 
-        // Setup for NavX Gyro
-        navxMxp.reset();
+		// Setup for NavX Gyro
+		navxMxp.reset();
 
-        // testEncoder.reset();
+		// testEncoder.reset();
 
-	    CameraServer.startAutomaticCapture(0);
-    }
+		CameraServer.startAutomaticCapture(0);
+	}
 
-    @Override
-    public void autonomousInit() {
-        CameraServer.startAutomaticCapture();
-    }
+	@Override
+	public void autonomousInit() {
+		CameraServer.startAutomaticCapture();
+	}
 
-    @Override
-    public void autonomousPeriodic() {
-        //this was for the test encoder
-        //encoderRotations = testEncoder.getDistance();
-        //SmartDashboard.putNumber("test Encoder Value", encoderRotations);
-    }
+	@Override
+	public void autonomousPeriodic() {
+		// this was for the test encoder
+		// encoderRotations = testEncoder.getDistance();
+		// SmartDashboard.putNumber("test Encoder Value", encoderRotations);
+	}
 
-    @Override
-    public void teleopInit() {}
+	@Override
+	public void teleopInit() {
+	}
 
-    /*
-	  @Override
-	  public void teleopPeriodic() {
-	  // Getting "Distance travelled" from kraken (needs to be converted to a useful unit).
-	  StatusSignal<Angle> signal = kraken.getPosition();
-	  Angle angle = signal.getValue();
-	  Shuffleboard.getTab("Sensors").add(m_ultrasonic);
-	  SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
-	  SmartDashboard.putString("toString", angle.toString());
-
-	  // Getting data from original gyro.
-	  double gyroDegrees = adxrGyro.getRotation2d().getDegrees();
-	  SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
-
-	  // Getting angle from NavX
-	  double navXAngle = navxMxp.getAngle();
-	  SmartDashboard.putNumber("gryo2Degrees", navXAngle);
-	  }
-	*/
+	/*
+	 * @Override
+	 * public void teleopPeriodic() {
+	 * // Getting "Distance travelled" from kraken (needs to be converted to a
+	 * useful unit).
+	 * StatusSignal<Angle> signal = kraken.getPosition();
+	 * Angle angle = signal.getValue();
+	 * Shuffleboard.getTab("Sensors").add(m_ultrasonic);
+	 * SmartDashboard.putNumber("baseUnit", angle.baseUnitMagnitude());
+	 * SmartDashboard.putString("toString", angle.toString());
+	 * 
+	 * // Getting data from original gyro.
+	 * double gyroDegrees = adxrGyro.getRotation2d().getDegrees();
+	 * SmartDashboard.putNumber("gryoDegrees", gyroDegrees);
+	 * 
+	 * // Getting angle from NavX
+	 * double navXAngle = navxMxp.getAngle();
+	 * SmartDashboard.putNumber("gryo2Degrees", navXAngle);
+	 * }
+	 */
 
 	public double getAdxrGyro() {
 		double adxrGyro_degrees = adxrGyro.getRotation2d().getDegrees();
-        if(adxrGyro_degrees < 360.0 && adxrGyro_degrees > -360.0){
-            adxrGyro_degrees += 360.0;
-        }
-        else if(adxrGyro_degrees < -360.0){
-            adxrGyro_degrees += 360.0 * Math.abs(adxrGyro_degrees) / 360;
-        }
-        return Math.abs(adxrGyro_degrees) % 360.0;
+		if (adxrGyro_degrees < 360.0 && adxrGyro_degrees > -360.0) {
+			adxrGyro_degrees += 360.0;
+		} else if (adxrGyro_degrees < -360.0) {
+			adxrGyro_degrees += 360.0 * Math.abs(adxrGyro_degrees) / 360;
+		}
+		return Math.abs(adxrGyro_degrees) % 360.0;
 	}
 
 	public double wheelEncoderToSwerveInput(CoreCANcoder encoder) {
@@ -165,112 +165,108 @@ public class Robot extends TimedRobot {
 		return Math.toDegrees(angleRadians * -1);
 	}
 
-    /** This function is called periodically during operator control. */
-    // *****************************************************************
-    // Temporarily named to `teleopPeriodicTank` to test our new sensors
-    // in the current `teleopPeriodic`.
-    // *****************************************************************
-    public void teleopPeriodic() {
+	/** This function is called periodically during operator control. */
+	// *****************************************************************
+	// Temporarily named to `teleopPeriodicTank` to test our new sensors
+	// in the current `teleopPeriodic`.
+	// *****************************************************************
+	public void teleopPeriodic() {
 
-      //calculate deltaTime
-      double currentTime = Timer.getFPGATimestamp();
-      deltaTime = currentTime - last_update_timer;
-      SmartDashboard.putNumber("deltaTime", deltaTime);
+		// calculate deltaTime
+		double currentTime = Timer.getFPGATimestamp();
+		deltaTime = currentTime - last_update_timer;
+		SmartDashboard.putNumber("deltaTime", deltaTime);
 
+		double convertedGyro = getAdxrGyro();
+		SmartDashboard.putNumber("gyroRotation", convertedGyro);
 
-		  double convertedGyro = getAdxrGyro();
-        SmartDashboard.putNumber("gyroRotation", convertedGyro);
+		double throttle = 0.25;
+		double leftJoystickX = controllerRed.getLeftX();
+		double leftJoystickY = controllerRed.getLeftY();
+		double rightJoystick = controllerRed.getRightX();
 
-        double throttle = 0.25;
-        double leftJoystickX = controllerRed.getLeftX();
-        double leftJoystickY = controllerRed.getLeftY();
-        double rightJoystick = controllerRed.getRightX();
+		double joystickMagnitude = Math.sqrt(Math.pow(leftJoystickX, 2) + Math.pow(leftJoystickY, 2));
 
-        double joystickMagnitude = Math.sqrt(Math.pow(leftJoystickX, 2) + Math.pow(leftJoystickY, 2));
-        
-        /* commented out because this deadzone will only work for swerve drive and cause problems for tank
-        if(deadzone > joystickMagnitude){
-          throttle = 0.0;
-        }
-        */
+		/*
+		 * commented out because this deadzone will only work for swerve drive and cause
+		 * problems for tank
+		 * if(deadzone > joystickMagnitude){
+		 * throttle = 0.0;
+		 * }
+		 */
 
-	    if(controllerRed.getRightBumperButtonPressed()) {
-	        currMotor = (currMotor + 1) % 4;
-	    }
-	    SmartDashboard.putNumber("currMotor", currMotor);
+		if (controllerRed.getRightBumperButtonPressed()) {
+			currMotor = (currMotor + 1) % 4;
+		}
+		SmartDashboard.putNumber("currMotor", currMotor);
 
-	    double reverseSpeedDirection = 1;
-	    if(currMotor == 0 || currMotor == 2) {
+		double reverseSpeedDirection = 1;
+		if (currMotor == 0 || currMotor == 2) {
 			reverseSpeedDirection = -1;
-	    }
+		}
 
-        // calculate joystick speed
-        double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
-        SmartDashboard.putNumber("joystick_diff", joystick_diff);
+		// calculate joystick speed
+		double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
+		SmartDashboard.putNumber("joystick_diff", joystick_diff);
 
-        if(joystick_diff > diff_threshold){
-          hysteresis_mult = 0.0;
-        }
-        
-        if(hysteresis_mult < 1.0){
-          calculate_hysteresis();
-        }
-        else{
-          hysteresis_mult = 1.0;
-        }
+		if (joystick_diff > diff_threshold) {
+			hysteresis_mult = 0.0;
+		}
 
-        allSpeedMotors[currMotor].set(throttle * leftJoystickY * reverseSpeedDirection);
-	    allDirectionMotors[currMotor].set(throttle * rightJoystick);
+		if (hysteresis_mult < 1.0) {
+			calculate_hysteresis();
+		} else {
+			hysteresis_mult = 1.0;
+		}
 
-		  for(int i = 0; i < allWheelEncoders.length; i++)
-      {
-			  SmartDashboard.putNumber( "Motor " + i + " Angle", 
-        wheelEncoderToSwerveInput(allWheelEncoders[i]));
-		  }
-        /*
-		  turnToOrigin(0.0, convertedGyro, 10);
+		allSpeedMotors[currMotor].set(throttle * leftJoystickY * reverseSpeedDirection);
+		allDirectionMotors[currMotor].set(throttle * rightJoystick);
 
-		  if (controllerRed.getAButtonPressed() && autoTurn == false) {
-		  robotDrive.tankDrive(0.5, -0.5);
-		  }
+		for (int i = 0; i < allWheelEncoders.length; i++) {
+			SmartDashboard.putNumber("Motor " + i + " Angle",
+					wheelEncoderToSwerveInput(allWheelEncoders[i]));
+		}
+		/*
+		 * turnToOrigin(0.0, convertedGyro, 10);
+		 * 
+		 * if (controllerRed.getAButtonPressed() && autoTurn == false) {
+		 * robotDrive.tankDrive(0.5, -0.5);
+		 * }
+		 * 
+		 * if (controllerRed.getAButtonPressed() && is_auto_turning == false){
+		 * is_auto_turning = true;
+		 * first_auto_turn_call = true;
+		 * }
+		 * 
+		 * if (is_auto_turning == false) {
+		 * robotDrive.arcadeDrive(leftJoystick * throttle, -rightJoystick * throttle);
+		 * }
+		 * else{
+		 * turn_to_degree(convertedGyro, 0.0, 0.5, 10.0);
+		 * }
+		 */
 
-        if (controllerRed.getAButtonPressed() && is_auto_turning == false){
-            is_auto_turning = true;
-            first_auto_turn_call = true;
-        }
+		// keep at bottom so it only updates at the end and is usable in entire function
+		last_update_stickMagnitude = joystickMagnitude;
+		last_update_timer = Timer.getFPGATimestamp();
 
-        if (is_auto_turning == false) {
-            robotDrive.arcadeDrive(leftJoystick * throttle, -rightJoystick * throttle);
-        }
-        else{
-            turn_to_degree(convertedGyro, 0.0, 0.5, 10.0);
-        }
-		*/
+		SmartDashboard.putNumber("Sonar Sensor Range", ultrasonicSensor.getVoltage());
+	}
 
+	private void calculate_hysteresis() {
+		hysteresis_mult += increase_speed * deltaTime;
+		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
+	}
 
-      // keep at bottom so it only updates at the end and is usable in entire function
-      last_update_stickMagnitude = joystickMagnitude;
-      last_update_timer = Timer.getFPGATimestamp();
-
-      SmartDashboard.putNumber("Sonar Sensor Range", ultrasonicSensor.getVoltage());
-    }
-
-
-    private void calculate_hysteresis(){
-      hysteresis_mult += increase_speed * deltaTime;
-      SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
-    }
-
-
-    private void turn_to_degree_old(double current_degree, double target_degree, double speed, double accuracy) {
+	private void turn_to_degree_old(double current_degree, double target_degree, double speed, double accuracy) {
 		double diff = (target_degree - current_degree) % 360;
-		if(-accuracy < diff && diff < accuracy) {
+		if (-accuracy < diff && diff < accuracy) {
 			is_auto_turning = false;
 			return;
 		}
-		if (first_auto_turn_call == true){
-			auto_turn_direct = diff/Math.abs(diff);
-			if(diff < -180 || diff > 180){
+		if (first_auto_turn_call == true) {
+			auto_turn_direct = diff / Math.abs(diff);
+			if (diff < -180 || diff > 180) {
 				auto_turn_direct *= -1.0;
 			}
 			first_auto_turn_call = false;
@@ -279,28 +275,28 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("diff", diff);
 		SmartDashboard.putNumber("direction", auto_turn_direct);
 		// robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
-    }
+	}
 
-    
 }
 
 /*
-  // Unused function headers.
-    @Override
-    public void disabledInit() {}
-
-    @Override
-    public void disabledPeriodic() {}
-
-    @Override
-    public void testInit() {}
-
-    @Override
-    public void testPeriodic() {}
-
-    @Override
-    public void simulationInit() {}
-
-    @Override
-    public void simulationPeriodic() {}
-*/
+ * // Unused function headers.
+ * 
+ * @Override
+ * public void disabledInit() {}
+ * 
+ * @Override
+ * public void disabledPeriodic() {}
+ * 
+ * @Override
+ * public void testInit() {}
+ * 
+ * @Override
+ * public void testPeriodic() {}
+ * 
+ * @Override
+ * public void simulationInit() {}
+ * 
+ * @Override
+ * public void simulationPeriodic() {}
+ */
