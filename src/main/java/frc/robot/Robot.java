@@ -16,6 +16,8 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.AnalogInput;
 
+import frc.robot.Constants.DriveConsts;
+
 // Unused imports
 // import edu.wpi.first.math.controller.PIDController;
 // import edu.wpi.first.wpilibj.RobotController;
@@ -97,7 +99,16 @@ public class Robot extends TimedRobot {
 		deltaTime = currentTime - last_update_timer;
 		SmartDashboard.putNumber("deltaTime", deltaTime);
 
-		teleopDriveTest();
+		// Divide by 5 to limit translate speed.
+		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+
+		// Divide by 5 to limit rotation speed.
+		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+
+		swerveDrive.setModules(ySpeed, xSpeed, rotSpeed);
+
+		// teleopDriveTest();
 
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_timer = Timer.getFPGATimestamp();

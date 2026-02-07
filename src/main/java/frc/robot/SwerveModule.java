@@ -85,16 +85,12 @@ public class SwerveModule {
 	public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
 		// This "if" condition prevents the wheels from swinging back to their
 		// neutral position when the joysticks are let go.
-		// TODO: The "0.001" may need to be increased depending on the behavior we
-		// observe when testing this.
-		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.001) {
+		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.005) {
 			stop();
 			return;
 		}
 
 		state.optimize(getState().angle);
-
-		SmartDashboard.putNumber("DesiredAngle", state.angle.getDegrees());
 
 		double newSpeedMotorVal = state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
 		int speedReverse = reverseSpeedMotor ? -1 : 1;
@@ -102,7 +98,6 @@ public class SwerveModule {
 
 		double newDirectionMotorVal = directionController.calculate(
 				getAbsoluteEncoderRad(), state.angle.getRadians());
-		SmartDashboard.putNumber("DirMotorVal", newDirectionMotorVal);
 		int directionReverse = reverseDirectionMotor ? -1 : 1;
 		directionMotor.set(newDirectionMotorVal * directionReverse);
 	}
@@ -126,12 +121,17 @@ public class SwerveModule {
 	}
 
 	public void log() {
+		/*
 		SmartDashboard.putNumber(moduleName + " drivePosition",
 				getDrivePosition());
 		SmartDashboard.putNumber(moduleName + " driveVelocity",
 				getDriveVelocity());
 		SmartDashboard.putNumber(moduleName + " absEncoderDegrees",
 				getAbsoluteEncoderRad() * (180 / Math.PI));
+		*/
+
+		SmartDashboard.putNumber( moduleName + " speed", speedMotor.get() );
+		SmartDashboard.putNumber( moduleName + " direction", directionMotor.get() );
 	}
 
 }

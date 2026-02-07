@@ -158,4 +158,11 @@ public class SwerveDrive {
 			break;
 		}
 	}
+
+	public void log() {
+		lfModule.log();
+		rfModule.log();
+		lbModule.log();
+		rbModule.log();
+	}
 }
