@@ -15,8 +15,10 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.RobotController;
 
 import frc.robot.Constants.DriveConsts;
+import frc.robot.SwerveDrive;
 
 // Unused imports
 // import edu.wpi.first.math.controller.PIDController;
@@ -113,10 +115,15 @@ public class Robot extends TimedRobot {
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_timer = Timer.getFPGATimestamp();
 
-		SmartDashboard.putNumber("Sonar Sensor Range", ultrasonicSensor.getVoltage());
+		double voltage_scale_factor = 5/RobotController.getVoltage5V();
+		double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
+		double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
+
+		SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
+		SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
 	}
 
-	// Contains test code for controlling an individual swerve module. Actual code for
+	// Contains test code for controlling an individual swerve modu le. Actual code for
 	// controlling swerve as a whole should probably be implemented in SwerveDrive.java.
 	// This function specifically contains implementations for:
 	//
