@@ -5,6 +5,7 @@
 package frc.robot;
 
 import com.studica.frc.AHRS.NavXComType;
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
@@ -31,6 +32,7 @@ public class Robot extends TimedRobot {
 
 	// ------ Swerve Drive ------ //
 	private final SwerveDrive swerveDrive = new SwerveDrive();
+	private final TalonFX intakeKraken = new TalonFX(12);
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	private int currModuleStrIndex = 0;
@@ -41,6 +43,9 @@ public class Robot extends TimedRobot {
 	private final Encoder testEncoder =
 		new Encoder( 1, 0, false, Encoder.EncodingType.k2X );
 	*/
+
+	// ----- Swerve ----- //
+	private SwerveDrive swerve_drive = new SwerveDrive();
 
 	// ----- Deadzone + Hysteresis ----- //
 	// hysteresis currently disabled because josh likes max speed better
@@ -97,9 +102,21 @@ public class Robot extends TimedRobot {
 	/** This function is called periodically during operator control. */
 	public void teleopPeriodic() {
 		// calculate deltaTime
+		if (controllerRed.getBButton() == true) {
+			intakeKraken.set(1);
+		}
+		else {
+			intakeKraken.set(0);
+		}
+
+
 		double currentTime = Timer.getFPGATimestamp();
 		deltaTime = currentTime - last_update_timer;
 		SmartDashboard.putNumber("deltaTime", deltaTime);
+
+
+		SmartDashboard.putNumber("gyro rot degree", swerve_drive.navxMxp.getRotation2d().getDegrees());
+		swerve_drive.turn_to_degree(0.0);
 
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);

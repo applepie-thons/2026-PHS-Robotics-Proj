@@ -12,6 +12,7 @@ import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
@@ -63,7 +64,7 @@ public class SwerveDrive {
 			ConfigConsts.reverseRbEncoder,
 			ConfigConsts.reverseRbSpeedEncoder);
 
-	private AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
+	public AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
 	public SwerveDrive() {
 		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block
@@ -121,8 +122,15 @@ public class SwerveDrive {
 	}
 
 	public void turn_to_degree(double degree) {
-		double degree_diff = deg_to_rad(degree) - navxMxp.getRotation2d().getRadians();
-		// in progress
+		double current_degree = navxMxp.getRotation2d().getDegrees();
+
+		if(current_degree < 0.0) {
+			current_degree += Math.floor(Math.abs(current_degree) / 360) + 1 * 360;
+		}
+		SmartDashboard.putNumber("current limited degree", current_degree);
+		double degree_diff = degree - current_degree;
+
+		
 	}
 
 	public double deg_to_rad(double deg) {
