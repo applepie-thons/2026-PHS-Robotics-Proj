@@ -5,6 +5,7 @@
 package frc.robot;
 
 import com.studica.frc.AHRS.NavXComType;
+import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.studica.frc.AHRS;
 
@@ -67,11 +68,17 @@ public class Robot extends TimedRobot {
 
 	// ------ Sonar ------ //
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
+	double voltageScaleFactor = 0;
+
+	// ------ TalonFX test rotation thing ------ //
+	TalonFX motorTestThing = new TalonFX(8);
 
 	public Robot() {}
 
 	@Override
-	public void robotPeriodic() {}
+	public void robotPeriodic() {
+		voltageScaleFactor = 5/RobotController.getVoltage5V();
+	}
 
 	@Override
 	public void robotInit() {
@@ -125,19 +132,29 @@ public class Robot extends TimedRobot {
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
 
-		swerveDrive.setModules(ySpeed, xSpeed, rotSpeed);
+		// swerveDrive.setModules(ySpeed, xSpeed, rotSpeed);
 
 		// teleopDriveTest();
 
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_timer = Timer.getFPGATimestamp();
 
-		double voltage_scale_factor = 5/RobotController.getVoltage5V();
-		double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
-		double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
+		// double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
+		// double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
+		//double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
 
-		SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
-		SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
+		//SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
+		//SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
+
+		// I fucking hate sonars so much bro jesus christ
+		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
+		double sensorInches = sensorRange * 39.3442622951;
+		double sensorCentimeters = sensorInches * 2.54;
+		SmartDashboard.putNumber("Sensor Range", sensorRange);
+		SmartDashboard.putNumber("Sensor Range (Inches)", sensorInches);
+		SmartDashboard.putNumber("Sensor Range (Centimeters)", sensorCentimeters);
+
+		SmartDashboard.putNumber("test motor encoder rotations", motorTestThing.getPosition().getValueAsDouble());
 	}
 
 	// Contains test code for controlling an individual swerve modu le. Actual code for
