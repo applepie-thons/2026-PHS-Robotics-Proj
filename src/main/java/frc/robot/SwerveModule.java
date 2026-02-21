@@ -51,7 +51,7 @@ public class SwerveModule {
 	}
 
 	public double getDrivePosition() {
-		double motorRotations = this.speedMotor.getPosition().getValue().baseUnitMagnitude();
+		double motorRotations = this.speedMotor.getPosition().getValueAsDouble();
 
 		// Do the following unit conversion:
 		// (MotorRotation) * (Meters / MotorRotation) -> (Meters)
@@ -62,7 +62,7 @@ public class SwerveModule {
 	}
 
 	public double getDriveVelocity() {
-		double motorRotationsPerSec = this.speedMotor.getVelocity().getValue().baseUnitMagnitude();
+		double motorRotationsPerSec = this.speedMotor.getVelocity().getValueAsDouble();
 
 		// Do the following unit conversion:
 		// (MotorRotation / Sec) * (Meters / MotorRotation) -> (Meters / Sec)
@@ -130,8 +130,13 @@ public class SwerveModule {
 				getAbsoluteEncoderRad() * (180 / Math.PI));
 		*/
 
-		SmartDashboard.putNumber( moduleName + " speed", speedMotor.get() );
-		SmartDashboard.putNumber( moduleName + " direction", directionMotor.get() );
+		// SmartDashboard.putNumber( moduleName + " speed", speedMotor.get() );
+		// SmartDashboard.putNumber( moduleName + " direction", directionMotor.get() );
+		SmartDashboard.putNumber( moduleName + " speed",
+								  getDrivePosition() );
+		SmartDashboard.putNumber( moduleName + " direction",
+								  getDriveVelocity() );
+		SmartDashboard.putNumber(moduleName + " absEncoderDegrees",
+								 getAbsoluteEncoderRad() * (180 / Math.PI));
 	}
-
 }

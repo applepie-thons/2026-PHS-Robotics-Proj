@@ -20,20 +20,18 @@ import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
 
 import frc.robot.Constants.DriveConsts;
-import frc.robot.SwerveDrive;
 
 // Unused imports
 // import edu.wpi.first.math.controller.PIDController;
 // import edu.wpi.first.wpilibj.RobotController;
 // import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+// import edu.wpi.first.wpilibj.Servo;
 
 public class Robot extends TimedRobot {
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
+	private boolean intakeToggle = false;
 
-	// ------ Swerve Drive ------ //
-	private final SwerveDrive swerveDrive = new SwerveDrive();
-	private final TalonFX intakeKraken = new TalonFX(4);
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	private int currModuleStrIndex = 0;
@@ -72,6 +70,10 @@ public class Robot extends TimedRobot {
 
 	// ------ TalonFX test rotation thing ------ //
 	TalonFX motorTestThing = new TalonFX(8);
+	TalonFX intakeWheels = new TalonFX(14);
+
+	// ------ Linear Actuator ------ //
+	// Servo linearActuator = new Servo(0);
 
 	public Robot() {}
 
@@ -107,16 +109,9 @@ public class Robot extends TimedRobot {
 	public void teleopInit() {}
 
 	/** This function is called periodically during operator control. */
+
 	public void teleopPeriodic() {
 		// calculate deltaTime
-		if (controllerRed.getBButton() == true) {
-			intakeKraken.set(-1);
-		}
-		else {
-			intakeKraken.set(0);
-		}
-
-
 		double currentTime = Timer.getFPGATimestamp();
 		deltaTime = currentTime - last_update_timer;
 		SmartDashboard.putNumber("deltaTime", deltaTime);
@@ -132,7 +127,7 @@ public class Robot extends TimedRobot {
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
 
-		// swerveDrive.setModules(ySpeed, xSpeed, rotSpeed);
+		// swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
 		// teleopDriveTest();
 
@@ -157,6 +152,7 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("test motor encoder rotations", motorTestThing.getPosition().getValueAsDouble());
 	}
 
+
 	// Contains test code for controlling an individual swerve modu le. Actual code for
 	// controlling swerve as a whole should probably be implemented in SwerveDrive.java.
 	// This function specifically contains implementations for:
@@ -165,13 +161,6 @@ public class Robot extends TimedRobot {
 	//    - Joystick deadzone
 	//
 	private void teleopDriveTest() {
-		// Modify the speed motor we're controlling.
-		if (controllerRed.getRightBumperButtonPressed()) {
-			currModuleStrIndex = (currModuleStrIndex + 1) % moduleStrs.length;
-		}
-
-		String currModuleStr = moduleStrs[currModuleStrIndex];
-		SmartDashboard.putString("currModule", moduleStrs[currModuleStrIndex]);
 
 		double leftJoystickX = controllerRed.getLeftX();
 		double leftJoystickY = controllerRed.getLeftY();
@@ -201,11 +190,6 @@ public class Robot extends TimedRobot {
 			hysteresis_mult = 1.0;
 		}
 
-		double throttle = 0.25;
-		double speedMotorInput = throttle * leftJoystickY * hysteresis_mult;
-		double directionMotorInput = throttle * rightJoystick;
-		swerveDrive.setModuleDirect(currModuleStr, speedMotorInput, directionMotorInput);
-
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_stickMagnitude = joystickMagnitude;
 	}
@@ -213,6 +197,44 @@ public class Robot extends TimedRobot {
 	private void calculate_hysteresis() {
 		hysteresis_mult += increase_speed * deltaTime;
 		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
+	}
+
+	@Override
+	public void testInit() {}
+
+	@Override
+	public void testPeriodic() {
+		SmartDashboard.putString("ToString", intakeWheels.getPosition().toString());
+		SmartDashboard.putString("Value: Long String", intakeWheels.getPosition().getValue().toLongString());
+		SmartDashboard.putString("Position Units", intakeWheels.getPosition().getUnits());
+		SmartDashboard.putNumber("Value: Double", intakeWheels.getPosition().getValueAsDouble());
+		SmartDashboard.putNumber("Value: Base Units", intakeWheels.getPosition().getValue().baseUnitMagnitude());
+
+		// Divide by 5 to limit translate speed.
+		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+
+		// Divide by 5 to limit rotation speed.
+		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+
+		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+
+		if (controllerRed.getBButtonPressed()) {
+			intakeToggle = !intakeToggle;
+		}
+		if (intakeToggle) {
+			intakeWheels.set(-1);
+		}
+		else {
+			intakeWheels.set(0);
+		}
+
+		/*
+		// Linear actuator test.
+		double leftTriggerAxis = controllerRed.getLeftTriggerAxis();
+		SmartDashboard.putNumber("Left trigger axis", leftTriggerAxis);
+		linearActuator.set(leftTriggerAxis);
+		*/
 	}
 
 	/*
@@ -280,11 +302,10 @@ public class Robot extends TimedRobot {
  * @Override
  * public void disabledPeriodic() {}
  *
- * @Override
- * public void testInit() {}
- *
- * @Override
- * public void testPeriodic() {}
+ */
+
+
+/*
  *
  * @Override
  * public void simulationInit() {}

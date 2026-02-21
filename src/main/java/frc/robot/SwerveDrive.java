@@ -108,6 +108,7 @@ public class SwerveDrive {
 		SwerveModuleState swerveModuleState = new SwerveModuleState(speed, rot2d);
 
 		boolean ignoreLowSpeed = false;
+
 		lfModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 		rfModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 		lbModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
@@ -129,8 +130,6 @@ public class SwerveDrive {
 		}
 		SmartDashboard.putNumber("current limited degree", current_degree);
 		double degree_diff = degree - current_degree;
-
-		
 	}
 
 	public double deg_to_rad(double deg) {
