@@ -33,7 +33,7 @@ public class Robot extends TimedRobot {
 
 	// ------ Swerve Drive ------ //
 	private final SwerveDrive swerveDrive = new SwerveDrive();
-	private final TalonFX intakeKraken = new TalonFX(12);
+	private final TalonFX intakeKraken = new TalonFX(4);
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	private int currModuleStrIndex = 0;
@@ -110,7 +110,7 @@ public class Robot extends TimedRobot {
 	public void teleopPeriodic() {
 		// calculate deltaTime
 		if (controllerRed.getBButton() == true) {
-			intakeKraken.set(1);
+			intakeKraken.set(-1);
 		}
 		else {
 			intakeKraken.set(0);
