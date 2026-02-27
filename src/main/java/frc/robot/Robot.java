@@ -4,10 +4,12 @@
 
 package frc.robot;
 
-import com.studica.frc.AHRS.NavXComType;
-import com.ctre.phoenix6.StatusSignal;
+// import com.studica.frc.AHRS.NavXComType;
+import com.ctre.phoenix.motorcontrol.ControlMode;
+import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+// import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
-import com.studica.frc.AHRS;
+// import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
 
@@ -30,8 +32,10 @@ import frc.robot.Constants.DriveConsts;
 public class Robot extends TimedRobot {
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
-	private boolean intakeToggle = false;
-
+	private Intake intake = new Intake(new TalonFX(14), new TalonFX(15), new TalonFX(16));
+	private TalonSRX shooterIntake = new TalonSRX(12);
+	private TalonSRX shooterLaunch = new TalonSRX(13);
+	private boolean shooterState = false;
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	private int currModuleStrIndex = 0;
@@ -70,7 +74,6 @@ public class Robot extends TimedRobot {
 
 	// ------ TalonFX test rotation thing ------ //
 	TalonFX motorTestThing = new TalonFX(8);
-	TalonFX intakeWheels = new TalonFX(14);
 
 	// ------ Linear Actuator ------ //
 	// Servo linearActuator = new Servo(0);
@@ -204,11 +207,7 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testPeriodic() {
-		SmartDashboard.putString("ToString", intakeWheels.getPosition().toString());
-		SmartDashboard.putString("Value: Long String", intakeWheels.getPosition().getValue().toLongString());
-		SmartDashboard.putString("Position Units", intakeWheels.getPosition().getUnits());
-		SmartDashboard.putNumber("Value: Double", intakeWheels.getPosition().getValueAsDouble());
-		SmartDashboard.putNumber("Value: Base Units", intakeWheels.getPosition().getValue().baseUnitMagnitude());
+		
 
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -219,15 +218,28 @@ public class Robot extends TimedRobot {
 
 		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
+
+
+
 		if (controllerRed.getBButtonPressed()) {
-			intakeToggle = !intakeToggle;
+			boolean currentIntakeState = intake.getIntakingState();
+			intake.setIntakingState(!currentIntakeState);
 		}
-		if (intakeToggle) {
-			intakeWheels.set(-1);
+		intake.runIntake();
+
+
+		if (controllerRed.getAButtonPressed()) {
+			shooterState = !shooterState;
+		}
+		if (shooterState) {
+			shooterIntake.set(ControlMode.PercentOutput, -1);
+			shooterLaunch.set(ControlMode.PercentOutput, -1);
 		}
 		else {
-			intakeWheels.set(0);
+			shooterIntake.set(ControlMode.PercentOutput, 0);
+			shooterLaunch.set(ControlMode.PercentOutput, 0);
 		}
+		
 
 		/*
 		// Linear actuator test.
