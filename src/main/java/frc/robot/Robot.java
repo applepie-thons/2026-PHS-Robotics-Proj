@@ -207,8 +207,6 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testPeriodic() {
-		
-
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -218,15 +216,11 @@ public class Robot extends TimedRobot {
 
 		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
-
-
-
 		if (controllerRed.getBButtonPressed()) {
 			boolean currentIntakeState = intake.getIntakingState();
 			intake.setIntakingState(!currentIntakeState);
 		}
 		intake.runIntake();
-
 
 		if (controllerRed.getAButtonPressed()) {
 			shooterState = !shooterState;
@@ -247,6 +241,12 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("Left trigger axis", leftTriggerAxis);
 		linearActuator.set(leftTriggerAxis);
 		*/
+	}
+
+	@Override
+	public void disabledPeriodic() {
+		SmartDashboard.putNumber("get value as double", intake.getPivot1().getPosition().getValueAsDouble());
+		SmartDashboard.putString("get position", intake.getPivot1().getPosition().toString());
 	}
 
 	/*
@@ -310,10 +310,6 @@ public class Robot extends TimedRobot {
  *
  * @Override
  * public void disabledInit() {}
- *
- * @Override
- * public void disabledPeriodic() {}
- *
  */
 
 
