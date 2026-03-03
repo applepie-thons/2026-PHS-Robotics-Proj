@@ -64,6 +64,8 @@ public class Robot extends TimedRobot {
 
 	// ------ Gyro ------ //
 	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
+
+	// old turn to degree function //
 	private boolean is_auto_turning = false;
 	private boolean first_auto_turn_call = true;
 	private double auto_turn_direct = 1.0;
@@ -144,7 +146,9 @@ public class Robot extends TimedRobot {
 		//SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
 		//SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
 
-		// I fucking hate sonars so much bro jesus christ
+		// "I fucking hate sonars so much bro jesus christ"
+		//                					- Michael Milward, 2026
+		// source: www.inspiringquotes.org/topics/hatespeech/users/mmilward (not really dont look this up)
 		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
 		double sensorInches = sensorRange * 39.3442622951;
 		double sensorCentimeters = sensorInches * 2.54;
@@ -235,6 +239,12 @@ public class Robot extends TimedRobot {
 		}
 		
 
+		// turn_to_degree test---------------------------------------
+		if (controllerRed.getYButton()){
+			swerve_drive.turn_to_degree(0);
+		}
+
+
 		/*
 		// Linear actuator test.
 		double leftTriggerAxis = controllerRed.getLeftTriggerAxis();
@@ -247,6 +257,8 @@ public class Robot extends TimedRobot {
 	public void disabledPeriodic() {
 		SmartDashboard.putNumber("get value as double", intake.getPivot1().getPosition().getValueAsDouble());
 		SmartDashboard.putString("get position", intake.getPivot1().getPosition().toString());
+
+		intake.runIntake();
 	}
 
 	/*
@@ -284,7 +296,7 @@ public class Robot extends TimedRobot {
 
 	}
 	*/
-
+/*
 	private void turn_to_degree_old(double current_degree, double target_degree, double speed, double accuracy) {
 		double diff = (target_degree - current_degree) % 360;
 		if (-accuracy < diff && diff < accuracy) {
@@ -303,6 +315,7 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("direction", auto_turn_direct);
 		// robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
 	}
+*/
 }
 
 /*

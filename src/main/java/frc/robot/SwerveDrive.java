@@ -128,19 +128,19 @@ public class SwerveDrive {
 		if(current_degree < 0.0) {
 			current_degree += Math.floor(Math.abs(current_degree) / 360) + 1 * 360;
 		}
-		SmartDashboard.putNumber("current limited degree", current_degree);
+		current_degree = current_degree % 360;
+		SmartDashboard.putNumber("current in range degree", current_degree);
 		double degree_diff = degree - current_degree;
+		int direction = 1;
+
+		if (degree_diff < (degree + 180.0) % 360){
+			direction *= -1;
+		}
+		SmartDashboard.putNumber("turn direction", direction);
+
+		setModules(0.0, 0.0, Math.copySign(turn_pid.calculate(current_degree, degree), direction));
 	}
 
-	public double deg_to_rad(double deg) {
-		double rad = deg * Math.PI / 180;
-		return rad;
-	}
-
-	public double rad_to_deg(double rad) {
-		double deg = rad * (180 / Math.PI);
-		return deg;
-	}
 
 	/***********************************************************************************/
 	/* Helper functions/variables for debugging
