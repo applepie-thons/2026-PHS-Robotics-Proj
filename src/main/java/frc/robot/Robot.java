@@ -32,7 +32,7 @@ import frc.robot.Constants.DriveConsts;
 public class Robot extends TimedRobot {
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
-	private Intake intake = new Intake(new TalonFX(14), new TalonFX(15), new TalonFX(16));
+	private Intake intake = new Intake(14, 15, 16);
 	private TalonSRX shooterIntake = new TalonSRX(12);
 	private TalonSRX shooterLaunch = new TalonSRX(13);
 	private boolean shooterState = false;
@@ -226,6 +226,8 @@ public class Robot extends TimedRobot {
 		}
 		intake.runIntake();
 
+		
+
 		if (controllerRed.getAButtonPressed()) {
 			shooterState = !shooterState;
 		}
@@ -239,11 +241,11 @@ public class Robot extends TimedRobot {
 		}
 		
 
-		// turn_to_degree test---------------------------------------
+		/*  turn_to_degree test---------------------------------------
 		if (controllerRed.getYButton()){
 			swerve_drive.turn_to_degree(0);
 		}
-
+		*/
 
 		/*
 		// Linear actuator test.
@@ -254,11 +256,14 @@ public class Robot extends TimedRobot {
 	}
 
 	@Override
+  	public void disabledInit() {
+		intake.geTalonFXConfiguration().Feedback.SensorToMechanismRatio = 4;
+	}
+ 
+	@Override
 	public void disabledPeriodic() {
-		SmartDashboard.putNumber("get value as double", intake.getPivot1().getPosition().getValueAsDouble());
-		SmartDashboard.putString("get position", intake.getPivot1().getPosition().toString());
-
-		intake.runIntake();
+		SmartDashboard.putNumber("intake Piv 1 rotations", intake.getPivot1().getPosition().getValueAsDouble());
+		SmartDashboard.putNumber("intake Piv 2 rotations", intake.getPivot2().getPosition().getValueAsDouble());
 	}
 
 	/*
@@ -321,9 +326,7 @@ public class Robot extends TimedRobot {
 /*
  * // Unused function headers.
  *
- * @Override
- * public void disabledInit() {}
- */
+ * 
 
 
 /*
