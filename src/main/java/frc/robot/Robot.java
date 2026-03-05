@@ -221,11 +221,17 @@ public class Robot extends TimedRobot {
 		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
 		if (controllerRed.getBButtonPressed()) {
-			boolean currentIntakeState = intake.getIntakingState();
-			intake.setIntakingState(!currentIntakeState);
+			intake.swapIntakingState();
 		}
+		/* 
+		if (controllerRed.getYButton()) {
+			intake.runPivot(-0.2);
+		}
+		else {
+			intake.runPivot(0);
+		}
+			*/
 		intake.runIntake();
-
 		
 
 		if (controllerRed.getAButtonPressed()) {
@@ -257,13 +263,11 @@ public class Robot extends TimedRobot {
 
 	@Override
   	public void disabledInit() {
-		intake.geTalonFXConfiguration().Feedback.SensorToMechanismRatio = 4;
 	}
  
 	@Override
 	public void disabledPeriodic() {
-		SmartDashboard.putNumber("intake Piv 1 rotations", intake.getPivot1().getPosition().getValueAsDouble());
-		SmartDashboard.putNumber("intake Piv 2 rotations", intake.getPivot2().getPosition().getValueAsDouble());
+		intake.logIntakePositions();
 	}
 
 	/*

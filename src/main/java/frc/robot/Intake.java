@@ -5,62 +5,58 @@ import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.GravityTypeValue;
-import com.ctre.phoenix6.signals.InvertedValue;
-// import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
-
+import com.ctre.phoenix6.signals.InvertedValue;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Intake
 {
     enum IntakePosition {
-        IN(0.9),
+        IN(0.25),
         OUT(0);
 
         private double position;
         IntakePosition(double rotations) {
             position = rotations;
         }
-
         public double getPosition() {
             return position;
         }
-        public void setPosition(IntakePosition newState) {
-            position = newState.getPosition();
-        }
     }
 
-    private TalonFX intakeDrive;
-    private TalonFX intakePivot1;
-    private TalonFX intakePivot2;
+    private TalonFX wheelDrive;
+    private TalonFX pivot1;
+    private TalonFX pivot2;
     private IntakePosition intakeLocation = IntakePosition.IN;
     private boolean intakingState = false;
 
-    private TalonFXConfiguration intakePivotConfig1 = new TalonFXConfiguration();
+    private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     final PositionVoltage voltageRequest1 = new PositionVoltage(0).withSlot(0);
     
 
 
-    public Intake(int intakeDrive, int intakePivot1, int intakePivot2) {
-        this.intakeDrive = new TalonFX(intakeDrive);
-        this.intakePivot1 = new TalonFX(intakePivot1);
-        this.intakePivot2 = new TalonFX(intakePivot2);
+    public Intake(int wheelDrive, int pivot1, int pivot2) {
+        this.wheelDrive = new TalonFX(wheelDrive);
+        this.pivot1 = new TalonFX(pivot1);
+        this.pivot2 = new TalonFX(pivot2);
+        this.pivot1.setPosition(0);
+        this.pivot2.setPosition(0);
 
-        
 
-        //pid cofiguration for intakePivot1    
-        Slot0Configs intakePivot1Controller = intakePivotConfig1.Slot0;
-        intakePivot1Controller.kP = 0;
-        intakePivot1Controller.kI = 0;
-        intakePivot1Controller.kD = 0;
-        intakePivot1Controller.kG = 0;
-        intakePivot1Controller.GravityType = GravityTypeValue.Arm_Cosine;
-        intakePivot1Controller.GravityArmPositionOffset = 0;
+        //pid cofiguration for pivot1    
+        Slot0Configs pivotPIDController = pivotConfig1.Slot0;
+        pivotPIDController.kP = 0.7;
+        pivotPIDController.kI = 0;
+        pivotPIDController.kD = 0;
+        pivotPIDController.kG = 0.8;
+        pivotPIDController.GravityType = GravityTypeValue.Arm_Cosine;
+        pivotConfig1.Feedback.SensorToMechanismRatio = 4;
+        pivotConfig1.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
-        intakePivotConfig1.Feedback.SensorToMechanismRatio = 4;
-        this.intakePivot1.getConfigurator().apply(intakePivotConfig1);
-
-        this.intakePivot2.setControl(new Follower(intakePivot1, MotorAlignmentValue.Opposed));
+        for (int i = 0; i < 4; i++) {
+            this.pivot1.getConfigurator().apply(pivotConfig1);
+        }
+        this.pivot2.setControl(new Follower(pivot1, MotorAlignmentValue.Opposed));
     }
 
      
@@ -69,50 +65,41 @@ public class Intake
     }
 
     public TalonFX getPivot1() {
-        return intakePivot1;
+        return pivot1;
     }
 
-    public TalonFX getPivot2() {
-        return intakePivot2;
+    public void logIntakePositions() {
+        SmartDashboard.putNumber("intake Piv 2 rotations", pivot2.getPosition().getValueAsDouble());
+		SmartDashboard.putNumber("intake Piv 1 rotations", pivot1.getPosition().getValueAsDouble());
+        SmartDashboard.putNumber("intake piv 2 power", pivot2.get());
+        SmartDashboard.putNumber("intake piv 1 power", pivot1.get());
     }
 
-    public TalonFXConfiguration geTalonFXConfiguration() {
-        return intakePivotConfig1;
-    }
-
-    public void getIntakePositions() {
-        SmartDashboard.putNumber("intake Piv 1 rotations", intakePivot2.getPosition().getValueAsDouble());
-		SmartDashboard.putNumber("intake Piv 2 rotations", intakePivot1.getPosition().getValueAsDouble());
-    }
-
-    public void setIntakingState(boolean newState) {
-        intakingState = newState;
+    public void swapIntakingState() {
+        intakingState = !intakingState;
     }
 
     private void setIntakePosition() {
-        // intakePivotConfig1.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
+        pivot1.setControl(voltageRequest1.withPosition(intakeLocation.getPosition()));
+    }
 
-        if (intakeLocation.equals(IntakePosition.OUT)) {
-            intakePivot1.setControl(voltageRequest1.withPosition(intakeLocation.getPosition()));
-        }
-        else if (intakeLocation.equals(IntakePosition.IN)) {
-            intakePivot1.setControl(voltageRequest1.withPosition(intakeLocation.getPosition()));
-
-        }
+    public void runPivot(double speed) {
+        pivot1.set(speed);
+        //pivot2.set(-1 * speed);
     }
   
 
     public void runIntake() {
          
         if (intakingState == true) {
-            intakeDrive.set(-0.55 );
+            wheelDrive.set(-0.55 );
         }
         else {
-            intakeDrive.set(0);
+            wheelDrive.set(0);
         }
     
         setIntakePosition();
-        getIntakePositions();
+        logIntakePositions();
     }
 }
 
