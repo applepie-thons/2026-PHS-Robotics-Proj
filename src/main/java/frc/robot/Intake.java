@@ -29,6 +29,7 @@ public class Intake
     private TalonFX pivot2;
     private IntakePosition intakeLocation = IntakePosition.IN;
     private boolean intakingState = false;
+    private boolean autoMode = true;
 
     private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     final PositionVoltage voltageRequest1 = new PositionVoltage(0).withSlot(0);
@@ -53,6 +54,12 @@ public class Intake
         pivotConfig1.Feedback.SensorToMechanismRatio = 4;
         pivotConfig1.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
+        //setting positing limits
+        pivotConfig1.SoftwareLimitSwitch.ForwardSoftLimitThreshold = IntakePosition.IN.getPosition();
+        pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitThreshold = IntakePosition.OUT.getPosition();
+        pivotConfig1.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
+        pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+
         for (int i = 0; i < 4; i++) {
             this.pivot1.getConfigurator().apply(pivotConfig1);
         }
@@ -62,6 +69,10 @@ public class Intake
      
     public boolean getIntakingState() {
         return intakingState;
+    }
+
+    public boolean getAutoMode() {
+        return autoMode;
     }
 
     public TalonFX getPivot1() {
@@ -79,26 +90,37 @@ public class Intake
         intakingState = !intakingState;
     }
 
-    private void setIntakePosition() {
-        pivot1.setControl(voltageRequest1.withPosition(intakeLocation.getPosition()));
+    public void swapPivotMode() {
+        autoMode = !autoMode;
     }
 
-    public void runPivot(double speed) {
-        pivot1.set(speed);
-        //pivot2.set(-1 * speed);
-    }
-  
 
-    public void runIntake() {
-         
+    private void setWheelState() {
         if (intakingState == true) {
             wheelDrive.set(-0.55 );
         }
         else {
             wheelDrive.set(0);
         }
-    
+    }
+
+    private void setIntakePosition() {
+        pivot1.setControl(voltageRequest1.withPosition(intakeLocation.getPosition()));     
+    }
+
+    private void setIntakePosition(double speed) {
+        pivot1.set(speed);
+    }
+
+    public void intakePeriodic() {
+        setWheelState();
         setIntakePosition();
+        logIntakePositions();
+    }
+
+    public void intakePeriodic(double pivotSpeed) {
+        setWheelState();
+        setIntakePosition(pivotSpeed);
         logIntakePositions();
     }
 }

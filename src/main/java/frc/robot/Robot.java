@@ -220,18 +220,29 @@ public class Robot extends TimedRobot {
 
 		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
+
 		if (controllerRed.getBButtonPressed()) {
 			intake.swapIntakingState();
 		}
-		/* 
-		if (controllerRed.getYButton()) {
-			intake.runPivot(-0.2);
+		if (controllerRed.getXButtonPressed()) {
+			intake.swapPivotMode();
+		}
+
+
+		if (intake.getAutoMode()) {
+			intake.intakePeriodic();
 		}
 		else {
-			intake.runPivot(0);
+			if (controllerRed.getRightBumperButton()) {
+				intake.intakePeriodic(-0.1);
+			}
+			else if (controllerRed.getLeftBumperButton()) {
+				intake.intakePeriodic(0.1);
+			}
+			else {
+				intake.intakePeriodic(0);
+			}
 		}
-			*/
-		intake.runIntake();
 		
 
 		if (controllerRed.getAButtonPressed()) {
@@ -245,21 +256,8 @@ public class Robot extends TimedRobot {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
 			shooterLaunch.set(ControlMode.PercentOutput, 0);
 		}
-		
-
-		/*  turn_to_degree test---------------------------------------
-		if (controllerRed.getYButton()){
-			swerve_drive.turn_to_degree(0);
-		}
-		*/
-
-		/*
-		// Linear actuator test.
-		double leftTriggerAxis = controllerRed.getLeftTriggerAxis();
-		SmartDashboard.putNumber("Left trigger axis", leftTriggerAxis);
-		linearActuator.set(leftTriggerAxis);
-		*/
 	}
+
 
 	@Override
   	public void disabledInit() {
@@ -269,71 +267,12 @@ public class Robot extends TimedRobot {
 	public void disabledPeriodic() {
 		intake.logIntakePositions();
 	}
-
-	/*
-	public double getAdxrGyro() {
-		double adxrGyro_degrees = adxrGyro.getRotation2d().getDegrees();
-		if (adxrGyro_degrees < 360.0 && adxrGyro_degrees > -360.0) {
-			adxrGyro_degrees += 360.0;
-		} else if (adxrGyro_degrees < -360.0) {
-			adxrGyro_degrees += 360.0 * Math.abs(adxrGyro_degrees) / 360;
-		}
-		return Math.abs(adxrGyro_degrees) % 360.0;
-	}
-
-	// Old implementation for making the robot turn to particular angle using the
-	// ADXR gyroscope.
-	public void arcadeTurnToDegree() {
-		double convertedGyro = getAdxrGyro();
-		SmartDashboard.putNumber("gyroRotation", convertedGyro);
-
-		double throttle = 0.25;
-		double leftJoystick = controllerRed.getLeftY();
-		double rightJoystick = controllerRed.getRightY();
-
-		if(controllerRed.getAButtonPressed() && is_auto_turning == false){
-			is_auto_turning = true;
-			first_auto_turn_call = true;
-		}
-
-		if(is_auto_turning == false) {
-			robotDrive.arcadeDrive(leftJoystick * throttle, -rightJoystick * throttle);
-		}
-		else {
-			turn_to_degree_old(convertedGyro, 0.0, 0.5, 10.0);
-		}
-
-	}
-	*/
-/*
-	private void turn_to_degree_old(double current_degree, double target_degree, double speed, double accuracy) {
-		double diff = (target_degree - current_degree) % 360;
-		if (-accuracy < diff && diff < accuracy) {
-			is_auto_turning = false;
-			return;
-		}
-		if (first_auto_turn_call == true) {
-			auto_turn_direct = diff / Math.abs(diff);
-			if (diff < -180 || diff > 180) {
-				auto_turn_direct *= -1.0;
-			}
-			first_auto_turn_call = false;
-		}
-
-		SmartDashboard.putNumber("diff", diff);
-		SmartDashboard.putNumber("direction", auto_turn_direct);
-		// robotDrive.arcadeDrive(0.0, auto_turn_direct * speed);
-	}
-*/
 }
 
 /*
  * // Unused function headers.
  *
  * 
-
-
-/*
  *
  * @Override
  * public void simulationInit() {}
