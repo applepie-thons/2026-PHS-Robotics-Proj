@@ -65,10 +65,11 @@ public class Robot extends TimedRobot {
 	// ------ Gyro ------ //
 	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
 
-	// old turn to degree function //
+	/* // old turn to degree function //
 	private boolean is_auto_turning = false;
 	private boolean first_auto_turn_call = true;
 	private double auto_turn_direct = 1.0;
+	*/
 
 	// ------ Sonar ------ //
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
@@ -160,52 +161,6 @@ public class Robot extends TimedRobot {
 	}
 
 
-	// Contains test code for controlling an individual swerve modu le. Actual code for
-	// controlling swerve as a whole should probably be implemented in SwerveDrive.java.
-	// This function specifically contains implementations for:
-	//
-	//    - Hysteresis
-	//    - Joystick deadzone
-	//
-	private void teleopDriveTest() {
-
-		double leftJoystickX = controllerRed.getLeftX();
-		double leftJoystickY = controllerRed.getLeftY();
-		double rightJoystick = controllerRed.getRightX();
-
-		double joystickMagnitude = Math.sqrt(Math.pow(leftJoystickX, 2) + Math.pow(leftJoystickY, 2));
-
-		/*
-		// commented out because this deadzone will only work for swerve drive and cause
-		// problems for tank
-		if(deadzone > joystickMagnitude){
-			throttle = 0.0;
-		}
-		*/
-
-		// calculate joystick speed
-		double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
-		SmartDashboard.putNumber("joystick_diff", joystick_diff);
-
-		if (joystick_diff > diff_threshold) {
-			hysteresis_mult = 0.0;
-		}
-
-		if (hysteresis_mult < 1.0) {
-			calculate_hysteresis();
-		} else {
-			hysteresis_mult = 1.0;
-		}
-
-		// keep at bottom so it only updates at the end and is usable in entire function
-		last_update_stickMagnitude = joystickMagnitude;
-	}
-
-	private void calculate_hysteresis() {
-		hysteresis_mult += increase_speed * deltaTime;
-		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
-	}
-
 	@Override
 	public void testInit() {}
 
@@ -228,7 +183,7 @@ public class Robot extends TimedRobot {
 			intake.swapPivotMode();
 		}
 
-
+		//TODO make sure that manual mode works with limits before continuing with auto
 		if (intake.getAutoMode()) {
 			intake.intakePeriodic();
 		}
@@ -265,7 +220,7 @@ public class Robot extends TimedRobot {
  
 	@Override
 	public void disabledPeriodic() {
-		intake.logIntakePositions();
+		intake.logIntake();
 	}
 }
 
