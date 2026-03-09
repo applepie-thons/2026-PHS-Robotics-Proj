@@ -149,7 +149,6 @@ public class Robot extends TimedRobot {
 
 		// "I fucking hate sonars so much bro jesus christ"
 		//                					- Michael Milward, 2026
-		// source: www.inspiringquotes.org/topics/hatespeech/users/mmilward (not really dont look this up)
 		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
 		double sensorInches = sensorRange * 39.3442622951;
 		double sensorCentimeters = sensorInches * 2.54;
@@ -167,8 +166,8 @@ public class Robot extends TimedRobot {
 	@Override
 	public void testPeriodic() {
 		// Divide by 5 to limit translate speed.
-		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double xSpeed = -controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = -controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
@@ -210,6 +209,12 @@ public class Robot extends TimedRobot {
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
 			shooterLaunch.set(ControlMode.PercentOutput, 0);
+		}
+
+
+		// turn_to_degree_test
+		if (controllerRed.getYButton()){
+			swerve_drive.turn_to_degree(10);
 		}
 	}
 

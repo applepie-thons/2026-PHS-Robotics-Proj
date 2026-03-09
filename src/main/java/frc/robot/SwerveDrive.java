@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
-	private PIDController turn_pid = new PIDController(0.3, 0, 0);
+	private PIDController turn_pid = new PIDController(0.1, 0, 0);
 	// turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 
 	// Shortened names for convenience:
@@ -123,6 +123,7 @@ public class SwerveDrive {
 	}
 
 	public void turn_to_degree(double degree) {
+		turn_pid.setTolerance(5.0);
 		double current_degree = navxMxp.getRotation2d().getDegrees();
 
 		if(current_degree < 0.0) {
@@ -131,14 +132,22 @@ public class SwerveDrive {
 		current_degree = current_degree % 360;
 		SmartDashboard.putNumber("current in range degree", current_degree);
 		double degree_diff = degree - current_degree;
-		int direction = 1;
 
-		if (degree_diff < (degree + 180.0) % 360){
+		int direction = -1;
+		//int direction = (degree_diff < (degree + 180.0) % 360) ? -1 : 1;
+
+		if (current_degree < (degree + 180.0) % 360){
 			direction *= -1;
 		}
 		SmartDashboard.putNumber("turn direction", direction);
 
-		setModules(0.0, 0.0, Math.copySign(turn_pid.calculate(current_degree, degree), direction));
+		if(!turn_pid.atSetpoint()){
+			setModules(0.0, 0.0, Math.copySign(turn_pid.calculate(current_degree, degree), direction));
+		}
+		else {
+			setModules(0, 0, 0);
+		}
+		SmartDashboard.putNumber("pid error", turn_pid.getError());
 	}
 
 
