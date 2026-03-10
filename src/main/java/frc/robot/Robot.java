@@ -12,7 +12,8 @@ import com.ctre.phoenix6.hardware.TalonFX;
 // import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
-
+// import edu.wpi.first.cscore.UsbCamera;
+import edu.wpi.first.util.PixelFormat;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
@@ -81,7 +82,12 @@ public class Robot extends TimedRobot {
 	// ------ Linear Actuator ------ //
 	// Servo linearActuator = new Servo(0);
 
-	public Robot() {}
+	// ------ Camera ------ //
+    
+
+	public Robot() {
+		CameraServer.startAutomaticCapture();
+	}
 
 	@Override
 	public void robotPeriodic() {
@@ -94,14 +100,16 @@ public class Robot extends TimedRobot {
 		adxrGyro.reset();
 		adxrGyro.calibrate();
 
+		
+
 		// testEncoder.reset();
 
-		CameraServer.startAutomaticCapture(0);
+		// CameraServer.startAutomaticCapture(0);
 	}
 
 	@Override
 	public void autonomousInit() {
-		CameraServer.startAutomaticCapture();
+		// CameraServer.startAutomaticCapture();
 	}
 
 	@Override
@@ -161,7 +169,9 @@ public class Robot extends TimedRobot {
 
 
 	@Override
-	public void testInit() {}
+	public void testInit() {
+		// CameraServer.startAutomaticCapture(0);
+	}
 
 	@Override
 	public void testPeriodic() {

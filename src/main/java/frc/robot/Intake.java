@@ -33,11 +33,12 @@ public class Intake
     private TalonFX wheelDrive;
     private TalonFX pivot1;
     private TalonFX pivot2;
-    private IntakePosition intakeLocation = IntakePosition.IN;
+    private IntakePosition intakeLocation = IntakePosition.OUT;
     private boolean intakingState = false;
     private boolean autoMode = false;
+    private final double intakeDeadzone = 0.03;
     private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
-    final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
+    private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
 
 
     public Intake(int wheelDrive, int pivot1, int pivot2) {
@@ -48,11 +49,11 @@ public class Intake
         this.pivot2.setPosition(0);
 
         //pid cofiguration for pivot1            
-        pivotConfig1.Slot0.kP = 0.7; //needs to be redone 3rd
+        pivotConfig1.Slot0.kP = 10; //needs to be redone 3rd
         pivotConfig1.Slot0.kI = 0; //do this last
         pivotConfig1.Slot0.kD = 0; //needs to be set 4th
-        pivotConfig1.Slot0.kG = 0.8; //needs to be redone 1st
-        pivotConfig1.Slot0.kS = 0; //needs to be set 2nd
+        pivotConfig1.Slot0.kG = 0.65; //needs to be redone 1st
+        pivotConfig1.Slot0.kS = 0.0025; //needs to be set 2nd
         pivotConfig1.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
         //editing sensor data for calculations
@@ -118,10 +119,11 @@ public class Intake
     //TODO if statements here must be edited once proper positions have been implemented
     private void setIntakePosition() {
         //intakeLocation = (intakingState) ? IntakePosition.OUT : IntakePosition.IN;
-
+        pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
+        /* 
         switch (intakeLocation) {
             case IN: //0.245 >= 0.25 - 0.05
-                if (pivot1.getPosition().getValueAsDouble() >= intakeLocation.position - 0.05) {
+                if (pivot1.getPosition().getValueAsDouble() >= intakeLocation.position - intakeDeadzone) {
                     pivot1.stopMotor();
                 }
                 else {
@@ -129,7 +131,7 @@ public class Intake
                 }
                 break;
             case OUT: //0.05 <= 0 + 0.05
-                if (pivot1.getPosition().getValueAsDouble() <= intakeLocation.position + 0.05) {
+                if (pivot1.getPosition().getValueAsDouble() <= intakeLocation.position + intakeDeadzone) {
                     pivot1.stopMotor();
                 }
                 else {
@@ -137,6 +139,7 @@ public class Intake
                 }
                 break;
         }
+                */
     }
 
     private void setIntakePosition(double speed) {
