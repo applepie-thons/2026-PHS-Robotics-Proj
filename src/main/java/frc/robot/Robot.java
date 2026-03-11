@@ -132,7 +132,7 @@ public class Robot extends TimedRobot {
 
 
 		SmartDashboard.putNumber("gyro rot degree", swerve_drive.navxMxp.getRotation2d().getDegrees());
-		swerve_drive.turn_to_degree(0.0);
+		
 
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -176,8 +176,8 @@ public class Robot extends TimedRobot {
 	@Override
 	public void testPeriodic() {
 		// Divide by 5 to limit translate speed.
-		double xSpeed = -controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = -controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
@@ -222,9 +222,10 @@ public class Robot extends TimedRobot {
 		}
 
 
+		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
 		// turn_to_degree_test
 		if (controllerRed.getYButton()){
-			swerve_drive.turn_to_degree(10);
+			swerve_drive.turn_to_degree(320, 0.2);
 		}
 	}
 

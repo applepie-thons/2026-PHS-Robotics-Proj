@@ -17,7 +17,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class SwerveDrive {
 	// for turn_to_degree() function
 	private PIDController turn_pid = new PIDController(0.1, 0, 0);
-	// turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 
 	// Shortened names for convenience:
 	// * lf: left-front
@@ -76,6 +75,8 @@ public class SwerveDrive {
 			} catch (Exception e) {
 			}
 		}).start();
+		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
+		turn_pid.setTolerance(0);
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
@@ -122,10 +123,11 @@ public class SwerveDrive {
 		rbModule.stop();
 	}
 
-	public void turn_to_degree(double degree) {
-		turn_pid.setTolerance(5.0);
-		double current_degree = navxMxp.getRotation2d().getDegrees();
+	public void turn_to_degree(double degree, double errorTolerance) {
 
+		double current_degree = navxMxp.getRotation2d().getRadians();
+
+		/*
 		if(current_degree < 0.0) {
 			current_degree += Math.floor(Math.abs(current_degree) / 360) + 1 * 360;
 		}
@@ -140,14 +142,23 @@ public class SwerveDrive {
 			direction *= -1;
 		}
 		SmartDashboard.putNumber("turn direction", direction);
-
-		if(!turn_pid.atSetpoint()){
-			setModules(0.0, 0.0, Math.copySign(turn_pid.calculate(current_degree, degree), direction));
+		*/
+		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
+		SmartDashboard.putNumber("pid output", result);
+		double error = turn_pid.getError();
+		if(!(error >= Math.PI - errorTolerance || error <= -Math.PI + errorTolerance)){
+			setModules(0.0, 0.0, result);
 		}
-		else {
-			setModules(0, 0, 0);
+		else{
+			setModules(0.0, 0.0, 0.0);
 		}
 		SmartDashboard.putNumber("pid error", turn_pid.getError());
+	}
+
+
+	// ------- radian functions -------- //
+	public double deg_to_rad(double deg){
+		return deg * (Math.PI/180);
 	}
 
 
