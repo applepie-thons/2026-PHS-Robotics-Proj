@@ -21,7 +21,7 @@ public class Intake
 {
     //TODO get real values for in and out positions
     enum IntakePosition {
-        IN(0.25),
+        IN(0.32),
         OUT(0);
 
         private double position;
@@ -33,9 +33,9 @@ public class Intake
     private TalonFX wheelDrive;
     private TalonFX pivot1;
     private TalonFX pivot2;
-    private IntakePosition intakeLocation = IntakePosition.OUT;
+    private IntakePosition intakeLocation = IntakePosition.IN;
     private boolean intakingState = false;
-    private boolean autoMode = false;
+    private boolean autoMode = true;
     private final double intakeDeadzone = 0.03;
     private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
@@ -49,19 +49,18 @@ public class Intake
         this.pivot2.setPosition(0);
 
         //pid cofiguration for pivot1            
-        pivotConfig1.Slot0.kP = 10; //needs to be redone 3rd
+        pivotConfig1.Slot0.kP = 4.5; //needs to be redone 3rd
         pivotConfig1.Slot0.kI = 0; //do this last
         pivotConfig1.Slot0.kD = 0; //needs to be set 4th
-        pivotConfig1.Slot0.kG = 0.65; //needs to be redone 1st
-        pivotConfig1.Slot0.kS = 0.0025; //needs to be set 2nd
+        pivotConfig1.Slot0.kG = 0.5; //needs to be redone 1st
+        pivotConfig1.Slot0.kS = 0; //needs to be set 2nd
         pivotConfig1.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
         //editing sensor data for calculations
-        pivotConfig1.Feedback.SensorToMechanismRatio = 4;
+        pivotConfig1.Feedback.SensorToMechanismRatio = 5;
         pivotConfig1.MotorOutput.Inverted = InvertedValue.Clockwise_Positive;
 
         //setup for current limits
-        //TODO determine an actually good current limit
         pivotConfig1.CurrentLimits.StatorCurrentLimit = 40;
         pivotConfig1.CurrentLimits.StatorCurrentLimitEnable = true;
 

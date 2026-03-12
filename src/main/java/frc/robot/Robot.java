@@ -7,6 +7,7 @@ package frc.robot;
 // import com.studica.frc.AHRS.NavXComType;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 // import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
 // import com.studica.frc.AHRS;
@@ -188,9 +189,11 @@ public class Robot extends TimedRobot {
 		if (controllerRed.getBButtonPressed()) {
 			intake.swapIntakingState();
 		}
+		/* 
 		if (controllerRed.getXButtonPressed()) {
 			intake.swapPivotMode();
 		}
+			*/
 
 		//TODO make sure that manual mode works with limits before continuing with auto
 		if (intake.getAutoMode()) {
@@ -222,11 +225,13 @@ public class Robot extends TimedRobot {
 		}
 
 
+		/* 
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
 		// turn_to_degree_test
 		if (controllerRed.getYButton()){
 			swerve_drive.turn_to_degree(320, 0.2);
 		}
+			*/
 	}
 
 
