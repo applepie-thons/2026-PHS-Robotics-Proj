@@ -21,8 +21,9 @@ public class Intake
 {
     //TODO get real values for in and out positions
     enum IntakePosition {
-        IN(0.32),
-        OUT(0);
+        START(0),
+        IN(-0.155),
+        OUT(-0.325);
 
         private double position;
         IntakePosition(double rotations) {
@@ -33,9 +34,9 @@ public class Intake
     private TalonFX wheelDrive;
     private TalonFX pivot1;
     private TalonFX pivot2;
-    private IntakePosition intakeLocation = IntakePosition.IN;
+    private IntakePosition intakeLocation = IntakePosition.START;
     private boolean intakingState = false;
-    private boolean autoMode = true;
+    private boolean autoMode = false;
     private final double intakeDeadzone = 0.03;
     private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
@@ -49,9 +50,9 @@ public class Intake
         this.pivot2.setPosition(0);
 
         //pid cofiguration for pivot1            
-        pivotConfig1.Slot0.kP = 4.5; //needs to be redone 3rd
+        pivotConfig1.Slot0.kP = 8; //needs to be redone 3rd
         pivotConfig1.Slot0.kI = 0; //do this last
-        pivotConfig1.Slot0.kD = 0; //needs to be set 4th
+        pivotConfig1.Slot0.kD = 1.65; //needs to be set 4th
         pivotConfig1.Slot0.kG = 0.5; //needs to be redone 1st
         pivotConfig1.Slot0.kS = 0; //needs to be set 2nd
         pivotConfig1.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
@@ -165,6 +166,8 @@ public class Intake
 		SmartDashboard.putNumber("intake Piv 1 rotations", pivot1.getPosition().getValueAsDouble());
         SmartDashboard.putNumber("intake piv 2 power", pivot2.get());
         SmartDashboard.putNumber("intake piv 1 power", pivot1.get());
+        SmartDashboard.putNumber("Intake velocity", pivot1.getVelocity().getValueAsDouble());
+        SmartDashboard.putNumber("Intake Error", intakeLocation.position - pivot1.getPosition().getValueAsDouble());
     }
 }
 

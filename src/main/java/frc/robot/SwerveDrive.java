@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
-	private PIDController turn_pid = new PIDController(0.1, 0, 0);
+	private PIDController turn_pid = new PIDController(0.2, 0, 0);
 
 	// Shortened names for convenience:
 	// * lf: left-front

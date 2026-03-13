@@ -24,6 +24,7 @@ import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
 
 import frc.robot.Constants.DriveConsts;
+import frc.robot.Intake.IntakePosition;
 
 // Unused imports
 // import edu.wpi.first.math.controller.PIDController;
@@ -34,10 +35,13 @@ import frc.robot.Constants.DriveConsts;
 public class Robot extends TimedRobot {
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
+	private final XboxController controllerYellow = new XboxController(1);
 	private Intake intake = new Intake(14, 15, 16);
 	private TalonSRX shooterIntake = new TalonSRX(12);
 	private TalonSRX shooterLaunch = new TalonSRX(13);
 	private boolean shooterState = false;
+
+	private TalonFX climb1 = new TalonFX( 17 );
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	private int currModuleStrIndex = 0;
@@ -59,6 +63,9 @@ public class Robot extends TimedRobot {
 	private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
 	private double increase_speed = 5.5; // how fast the speed increases during hysteresis
 	private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
+
+	// ---- turn to degree ---- //
+	private boolean is_auto_turning = false;
 
 	// ---- deltatime ----//
 	private double last_update_timer = 0.0;
@@ -133,7 +140,6 @@ public class Robot extends TimedRobot {
 
 
 		SmartDashboard.putNumber("gyro rot degree", swerve_drive.navxMxp.getRotation2d().getDegrees());
-		
 
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -176,17 +182,35 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testPeriodic() {
+		double climb1Speed = controllerRed.getLeftTriggerAxis();
+		climb1Speed *= climb1Speed;
+		double climb1BackSpeed = controllerRed.getRightTriggerAxis();
+		climb1BackSpeed *= climb1BackSpeed * -1;
+
+		SmartDashboard.putNumber("Climb1Speed", climb1Speed);
+		SmartDashboard.putNumber("Climb1BackSpeed", climb1BackSpeed);
+
+		// Try setting voltage directly?
+		climb1.set(climb1Speed + climb1BackSpeed);
+
+		// Square the input for finer grain control.
+		double swerveLeftXInput = controllerRed.getLeftX();
+		double swerveLeftYInput = controllerRed.getLeftY();
 		// Divide by 5 to limit translate speed.
-		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double xSpeed = swerveLeftXInput * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = swerveLeftYInput * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 
+		// Square the input for finer grain control.
+		double swerveRotInput = controllerRed.getRightX();
 		// Divide by 5 to limit rotation speed.
-		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+		double rotSpeed = swerveRotInput * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
 
-		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		if(!is_auto_turning){
+			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		}
 
 
-		if (controllerRed.getBButtonPressed()) {
+		if (controllerYellow.getBButtonPressed()) {
 			intake.swapIntakingState();
 		}
 		/* 
@@ -195,15 +219,21 @@ public class Robot extends TimedRobot {
 		}
 			*/
 
-		//TODO make sure that manual mode works with limits before continuing with auto
+		if (controllerYellow.getStartButtonPressed()) {
+			intake.manualSetIntakePosition(IntakePosition.IN);
+		}
+		else if(controllerYellow.getBackButtonPressed()) {
+			intake.manualSetIntakePosition(IntakePosition.OUT);;
+		}
+
 		if (intake.getAutoMode()) {
 			intake.intakePeriodic();
 		}
 		else {
-			if (controllerRed.getRightBumperButton()) {
+			if (controllerYellow.getRightBumperButton()) {
 				intake.intakePeriodic(-0.1);
 			}
-			else if (controllerRed.getLeftBumperButton()) {
+			else if (controllerYellow.getLeftBumperButton()) {
 				intake.intakePeriodic(0.1);
 			}
 			else {
@@ -212,7 +242,7 @@ public class Robot extends TimedRobot {
 		}
 		
 
-		if (controllerRed.getAButtonPressed()) {
+		if (controllerYellow.getAButtonPressed()) {
 			shooterState = !shooterState;
 		}
 		if (shooterState) {
@@ -225,14 +255,56 @@ public class Robot extends TimedRobot {
 		}
 
 
-		/* 
+		 //turn_to_degree forward + backward
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
-		// turn_to_degree_test
-		if (controllerRed.getYButton()){
-			swerve_drive.turn_to_degree(320, 0.2);
+		
+		if (controllerRed.getYButton()) {
+			is_auto_turning = true;
+			swerve_drive.turn_to_degree(0, 0.2);
 		}
-			*/
+		else if (controllerRed.getXButton()) {
+			is_auto_turning = true;
+			swerve_drive.turn_to_degree(180, 0.2);
+		}
+		else is_auto_turning = false;
+
+		// ------------ old hysteresis + deadzone that we did a while ago with swerve ---------- //
+		
+		// --------not active currently dont expect it to do anything
+
+		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
+
+		/*
+		// commented out because this deadzone will only work for swerve drive and cause
+		// problems for tank
+		if(deadzone > joystickMagnitude){
+			throttle = 0.0;
+		}
+		*/
+
+		// calculate joystick speed
+		double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
+		
+
+		if (joystick_diff > diff_threshold) {
+			hysteresis_mult = 0.0;
+		}
+
+		if (hysteresis_mult < 1.0) {
+			calculate_hysteresis();
+		} else {
+			hysteresis_mult = 1.0;
+		}
+
+		// keep at bottom so it only updates at the end and is usable in entire function
+		last_update_stickMagnitude = joystickMagnitude;
 	}
+	
+	private void calculate_hysteresis() {
+		hysteresis_mult += increase_speed * deltaTime;
+		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
+	}
+		
 
 
 	@Override
