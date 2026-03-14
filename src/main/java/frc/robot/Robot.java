@@ -91,6 +91,9 @@ public class Robot extends TimedRobot {
 		// Setup for ADXR Gyro
 		adxrGyro.reset();
 		adxrGyro.calibrate();
+
+		// Reset the climb motor encoder's position.
+		climb.setPosition(0);
 	}
 
 	@Override
@@ -117,12 +120,38 @@ public class Robot extends TimedRobot {
 		}
 
 		// ------------------------------- Climb ------------------------------- //
-		double climbSpeed = controllerRed.getLeftTriggerAxis();
-		climbSpeed *= climbSpeed;
-		double climbBackSpeed = controllerRed.getRightTriggerAxis();
-		climbBackSpeed *= climbBackSpeed * -1;
-		// Try setting voltage directly?
-		climb.set(climbSpeed + climbBackSpeed);
+		// TODO (Sahil): Are 'extend' and 'retract' named correctly?
+		// Square the inputs for finer-grain control.
+		double climbExtendSpeed = controllerRed.getLeftTriggerAxis();
+		climbExtendSpeed *= climbExtendSpeed;
+		double climbRetractSpeed = controllerRed.getRightTriggerAxis();
+		climbRetractSpeed *= climbRetractSpeed * -1;
+		double climbSpeed = climbExtendSpeed + climbRetractSpeed;
+
+		// TODO (Sahil): Once I've checked if the climbing encoder needs to be reversed,
+		// and what max height should be, set this if the "Select" button is held down.
+		boolean ignoreClimbLimit = true;
+
+		if (!ignoreClimbLimit) {
+			double currClimbPosition = climb.getPosition().getValueAsDouble();
+			// TODO (Sahil): Need to figure out what the actual max is.
+			double maxClimbPosition = 1337;
+
+			if (climbSpeed < 0 && currClimbPosition <= 0) {
+				climbSpeed = 0;
+			} else if (climbSpeed > 0 && currClimbPosition >= maxClimbPosition) {
+				climbSpeed = 0;
+			}
+		}
+		climb.set(climbSpeed);
+
+		if (controllerRed.getStartButtonPressed()) {
+			// Reset the climb motor encoder's position on a button press. Mainly for
+			// debugging purposes.
+			climb.setPosition(0);
+		}
+
+		SmartDashboard.putNumber("currClimbPosition", climb.getPosition().getValueAsDouble());
 	}
 
 	public void yellowControllerPeriodic() {
