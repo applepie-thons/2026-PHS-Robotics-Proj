@@ -9,11 +9,12 @@ import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
+import frc.robot.Constants.ConfigConsts;
 
 /**
  * Models an intake that uses three talon fx devices, one to suck in items
  * and two for pivoting the mechanism.
- * 
+ *
  * @author Sunay Patel
  * @version March, 2026
  */
@@ -44,14 +45,14 @@ public class Intake
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
 
 
-    public Intake(int wheelDrive, int pivot1, int pivot2) {
-        this.wheelDrive = new TalonFX(wheelDrive);
-        this.pivot1 = new TalonFX(pivot1);
-        this.pivot2 = new TalonFX(pivot2);
+    public Intake() {
+        this.wheelDrive = new TalonFX(ConfigConsts.intakeWheelDriveMotorId);
+        this.pivot1 = new TalonFX(ConfigConsts.intakePivot1MotorId);
+        this.pivot2 = new TalonFX(ConfigConsts.intakePivot2MotorId);
         this.pivot1.setPosition(0);
         this.pivot2.setPosition(0);
 
-        //pid cofiguration for pivot1            
+        //pid cofiguration for pivot1
         pivotConfig1.Slot0.kP = 8; //needs to be redone 3rd
         pivotConfig1.Slot0.kI = 0; //do this last
         pivotConfig1.Slot0.kD = 1.65; //needs to be set 4th
@@ -74,7 +75,7 @@ public class Intake
         pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
 
         //applying configuration
-        StatusCode configStatus = StatusCode.StatusCodeNotInitialized; 
+        StatusCode configStatus = StatusCode.StatusCodeNotInitialized;
         for (int i = 0; i < 5; i++) {
             configStatus = this.pivot1.getConfigurator().apply(pivotConfig1);
             if (configStatus.isOK()) {
@@ -86,7 +87,8 @@ public class Intake
         }
         SmartDashboard.putBoolean("Configuration Applied", configStatus.isOK());
 
-        this.pivot2.setControl(new Follower(pivot1, MotorAlignmentValue.Opposed));
+        this.pivot2.setControl(new Follower( ConfigConsts.intakePivot1MotorId,
+											 MotorAlignmentValue.Opposed));
     }
 
     public boolean getAutoMode() {
@@ -104,7 +106,7 @@ public class Intake
     //Only use for testing
     public void manualSetIntakePosition(IntakePosition newPosition) {
         intakeLocation = newPosition;
-    }    
+    }
 
     //TODO if statements here must be edited once proper positions have been implemented
     private void setIntakePosition() {
@@ -143,7 +145,7 @@ public class Intake
 
 
 // Notes
-/* 
+/*
         Values that should be set to send out the intake
 
         if (controllerRed.getYButton()) {
@@ -164,7 +166,7 @@ public void enumTest() {
             SmartDashboard.putNumber("intakeLocationOut", intakeLocation.getPosition());
         }
         else if (intakeLocation.equals(IntakePosition.IN)) {
-            SmartDashboard.putNumber("intakeLocationIn", intakeLocation.getPosition());            
+            SmartDashboard.putNumber("intakeLocationIn", intakeLocation.getPosition());
         }
     }
  */
@@ -181,10 +183,10 @@ public void enumTest() {
 
 
 /*
-    Springfield 12:30 a.m. I don't have time to document 
+    Springfield 12:30 a.m. I don't have time to document
     public void setWheelSpeed() {
         wheelDrive.set(intakeSpeed);
          double speed = (intakingState) ? -0.55 : 0;
-        wheelDrive.set(speed); 
+        wheelDrive.set(speed);
 
  */

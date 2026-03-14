@@ -124,7 +124,6 @@ public class SwerveDrive {
 	}
 
 	public void turn_to_degree(double degree, double errorTolerance) {
-
 		double current_degree = navxMxp.getRotation2d().getRadians();
 
 		/*
@@ -143,6 +142,7 @@ public class SwerveDrive {
 		}
 		SmartDashboard.putNumber("turn direction", direction);
 		*/
+
 		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
 		SmartDashboard.putNumber("pid output", result);
 		double error = turn_pid.getError();
@@ -160,7 +160,6 @@ public class SwerveDrive {
 	public double deg_to_rad(double deg){
 		return deg * (Math.PI/180);
 	}
-
 
 	/***********************************************************************************/
 	/* Helper functions/variables for debugging

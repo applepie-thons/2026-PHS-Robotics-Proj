@@ -4,13 +4,9 @@
 
 package frc.robot;
 
-// import com.studica.frc.AHRS.NavXComType;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-//import com.ctre.phoenix6.configs.TalonFXConfiguration;
-// import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
-// import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
@@ -23,38 +19,28 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
 
+import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
-
-// Unused imports
-// import edu.wpi.first.math.controller.PIDController;
-// import edu.wpi.first.wpilibj.RobotController;
-// import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-// import edu.wpi.first.wpilibj.Servo;
 
 public class Robot extends TimedRobot {
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
 	private final XboxController controllerYellow = new XboxController(1);
-	private Intake intake = new Intake(14, 15, 16);
-	private TalonSRX shooterIntake = new TalonSRX(12);
-	private TalonSRX shooterLaunch = new TalonSRX(13);
-	private boolean shooterState = false;
 
-	private TalonFX climb1 = new TalonFX( 17 );
+	private TalonSRX shooterIntake = new TalonSRX( ConfigConsts.shooterInMotorId );
+	private TalonSRX shooterLaunch = new TalonSRX( ConfigConsts.shooterOutMotorId );
+
+	private Intake intake = new Intake();
+
+	private TalonFX climb = new TalonFX( ConfigConsts.climbMotorId );
+
+	// ----- Swerve ----- //
+	private SwerveDrive swerve_drive = new SwerveDrive();
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
 	//private int currModuleStrIndex = 0;
 	//private String moduleStrs[] = { "lf", "rf", "lb", "rb" };
-
-	// encoder thingy
-	/*
-	private final Encoder testEncoder =
-		new Encoder( 1, 0, false, Encoder.EncodingType.k2X );
-	*/
-
-	// ----- Swerve ----- //
-	private SwerveDrive swerve_drive = new SwerveDrive();
 
 	// ----- Deadzone + Hysteresis ----- //
 	// hysteresis currently disabled because josh likes max speed better
@@ -84,17 +70,11 @@ public class Robot extends TimedRobot {
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
 	double voltageScaleFactor = 0;
 
-	// ------ TalonFX test rotation thing ------ //
-	TalonFX motorTestThing = new TalonFX(8);
-
-	// ------ Linear Actuator ------ //
-	// Servo linearActuator = new Servo(0);
-
 	// ------ Camera ------ //
 	private final UsbCamera camera;
 
 	public Robot() {
-		// CameraServer.startAutomaticCapture();
+		// TODO (Sahil): Check that is actually drops the camera's resolution.
 		this.camera = CameraServer.startAutomaticCapture();
         this.camera.setPixelFormat(PixelFormat.kMJPEG);
         this.camera.setResolution(320, 240);
@@ -111,98 +91,43 @@ public class Robot extends TimedRobot {
 		// Setup for ADXR Gyro
 		adxrGyro.reset();
 		adxrGyro.calibrate();
-		// testEncoder.reset();
 	}
 
 	@Override
 	public void autonomousInit() {}
 
 	@Override
-	public void autonomousPeriodic() {
-	}
+	public void autonomousPeriodic() {}
 
-	@Override
-	public void teleopInit() {}
+	public void redControllerPeriodic() {
+		// ------------------------------- Swerve ------------------------------- //
+		double turn_tolerance = 0.2;
+		if (controllerRed.getYButton()) {
+			swerve_drive.turn_to_degree(0, turn_tolerance);
+		} else if (controllerRed.getXButton()) {
+			swerve_drive.turn_to_degree(180, turn_tolerance);
+		} else {
+			// Divide by 5 to limit translate speed.
+			double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+			double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+			// Divide by 5 to limit rotation speed.
+			double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
 
-	/** This function is called periodically during operator control. */
-
-	public void teleopPeriodic() {
-		// calculate deltaTime
-		double currentTime = Timer.getFPGATimestamp();
-		deltaTime = currentTime - last_update_timer;
-		SmartDashboard.putNumber("deltaTime", deltaTime);
-
-
-		SmartDashboard.putNumber("gyro rot degree", swerve_drive.navxMxp.getRotation2d().getDegrees());
-
-		// Divide by 5 to limit translate speed.
-		//double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		//double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-
-		// Divide by 5 to limit rotation speed.
-		//double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
-
-		// swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
-
-		// teleopDriveTest();
-
-		// keep at bottom so it only updates at the end and is usable in entire function
-		last_update_timer = Timer.getFPGATimestamp();
-
-		// double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
-		// double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
-		//double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
-
-		//SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
-		//SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
-
-		// "I hate sonars so much bro jesus christ"
-		//                					- Michael Milward, 2026
-		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
-		double sensorInches = sensorRange * 39.3442622951;
-		double sensorCentimeters = sensorInches * 2.54;
-		SmartDashboard.putNumber("Sensor Range", sensorRange);
-		SmartDashboard.putNumber("Sensor Range (Inches)", sensorInches);
-		SmartDashboard.putNumber("Sensor Range (Centimeters)", sensorCentimeters);
-
-		SmartDashboard.putNumber("test motor encoder rotations", motorTestThing.getPosition().getValueAsDouble());
-	}
-
-
-	@Override
-	public void testInit() {}
-
-	@Override
-	public void testPeriodic() {
-		double climb1Speed = controllerRed.getLeftTriggerAxis();
-		climb1Speed *= climb1Speed;
-		double climb1BackSpeed = controllerRed.getRightTriggerAxis();
-		climb1BackSpeed *= climb1BackSpeed * -1;
-
-		SmartDashboard.putNumber("Climb1Speed", climb1Speed);
-		SmartDashboard.putNumber("Climb1BackSpeed", climb1BackSpeed);
-
-		// Try setting voltage directly?
-		climb1.set(climb1Speed + climb1BackSpeed);
-
-		// Square the input for finer grain control.
-		double swerveLeftXInput = controllerRed.getLeftX();
-		double swerveLeftYInput = controllerRed.getLeftY();
-		// Divide by 5 to limit translate speed.
-		double xSpeed = swerveLeftXInput * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = swerveLeftYInput * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-
-		// Square the input for finer grain control.
-		double swerveRotInput = controllerRed.getRightX();
-		// Divide by 5 to limit rotation speed.
-		double rotSpeed = swerveRotInput * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
-
-		if(!is_auto_turning){
 			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 		}
 
+		// ------------------------------- Climb ------------------------------- //
+		double climbSpeed = controllerRed.getLeftTriggerAxis();
+		climbSpeed *= climbSpeed;
+		double climbBackSpeed = controllerRed.getRightTriggerAxis();
+		climbBackSpeed *= climbBackSpeed * -1;
+		// Try setting voltage directly?
+		climb.set(climbSpeed + climbBackSpeed);
+	}
 
-
+	public void yellowControllerPeriodic() {
+		// ------------------------------- Intake ------------------------------- //
+		// Set desired speed of the intaking wheels.
 		if (controllerYellow.getBButton()) {
 			intake.setIntakeSpeed(-0.55);
 		}
@@ -213,6 +138,8 @@ public class Robot extends TimedRobot {
 			intake.setIntakeSpeed(0);
 		}
 
+		// Set desired position of the intake arm when in `intake.getAutoMode()`
+		// is true.
 		if (controllerYellow.getStartButtonPressed()) {
 			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
@@ -220,10 +147,18 @@ public class Robot extends TimedRobot {
 			intake.manualSetIntakePosition(IntakePosition.IN);;
 		}
 
+		// Toggle between the intake arm control modes. There are two different
+		// control modes, tracked by the boolean return by `intake.getAutoMode()`.
+		//
+		//     - autoMode=True: Using PID, the arm will move to the position specified
+		//                      by `intake.manualSetIntakePosition()`.
+		//     - autoMode=False: The arm is controlled directly via an analog user input.
 		if (controllerYellow.getRightBumperButtonPressed()) {
 			intake.swapPivotMode();
 		}
 
+		// Actually set the state of the intake wheels and arm motors based on what was
+		// configured above.
 		if (intake.getAutoMode()) {
 			intake.intakePeriodic();
 		}
@@ -233,13 +168,13 @@ public class Robot extends TimedRobot {
 			}
 			else if (controllerYellow.getLeftTriggerAxis() > 0) {
 				intake.intakePeriodic(controllerYellow.getLeftTriggerAxis());
-			}   
+			}
 			else {
 				intake.intakePeriodic(0);
 			}
 		}
 
-
+		// ------------------------------- Shooter ------------------------------- //
 		if (controllerYellow.getAButton()) {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
 			shooterLaunch.set(ControlMode.PercentOutput, -1);
@@ -252,7 +187,36 @@ public class Robot extends TimedRobot {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
 			shooterLaunch.set(ControlMode.PercentOutput, 0);
 		}
+	}
 
+	@Override
+	public void teleopInit() {}
+
+	@Override
+	public void teleopPeriodic() {
+		redControllerPeriodic();
+		yellowControllerPeriodic();
+	}
+
+	@Override
+	public void testInit() {}
+
+	@Override
+	public void testPeriodic() {
+		// calculate deltaTime
+		double currentTime = Timer.getFPGATimestamp();
+		deltaTime = currentTime - last_update_timer;
+		SmartDashboard.putNumber("delta_time", deltaTime);
+		SmartDashboard.putNumber("gyro_degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
+
+		// Divide by 5 to limit speed.
+		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+
+		if(!is_auto_turning){
+			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		}
 
 		 //turn_to_degree forward + backward
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
@@ -297,14 +261,13 @@ public class Robot extends TimedRobot {
 
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_stickMagnitude = joystickMagnitude;
+		last_update_timer = Timer.getFPGATimestamp();
 	}
 
 	private void calculate_hysteresis() {
 		hysteresis_mult += increase_speed * deltaTime;
 		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
 	}
-
-
 
 	@Override
   	public void disabledInit() {
@@ -313,6 +276,24 @@ public class Robot extends TimedRobot {
 	@Override
 	public void disabledPeriodic() {
 		intake.logIntake();
+	}
+
+	public void sonarTestPeriodic() {
+		// double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
+		// double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
+		// double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
+
+		// SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
+		// SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
+
+		// "I hate sonars so much bro jesus christ"
+		//                					- Michael Milward, 2026
+		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
+		double sensorInches = sensorRange * 39.3442622951;
+		double sensorCentimeters = sensorInches * 2.54;
+		SmartDashboard.putNumber("Sensor Range", sensorRange);
+		SmartDashboard.putNumber("Sensor Range (Inches)", sensorInches);
+		SmartDashboard.putNumber("Sensor Range (Centimeters)", sensorCentimeters);
 	}
 }
 

@@ -8,6 +8,7 @@ import edu.wpi.first.math.util.Units;
 
 public final class Constants {
 	public static final class ConfigConsts {
+		/***************************** Swerve *****************************/
 		// Shortened names for convenience:
 		// * lf: left-front
 		// * rf: right-front
@@ -45,6 +46,18 @@ public final class Constants {
 		public static final boolean reverseRbDirectionMotor = true;
 		public static final boolean reverseRbEncoder = false;
 		public static final boolean reverseRbSpeedEncoder = true;
+
+		/***************************** Shooter *****************************/
+		public static final int shooterInMotorId = 12;
+		public static final int shooterOutMotorId = 13;
+
+		/***************************** Intake *****************************/
+		public static final int intakeWheelDriveMotorId = 14;
+		public static final int intakePivot1MotorId = 15;
+		public static final int intakePivot2MotorId = 16;
+
+		/***************************** Climb *****************************/
+		public static final int climbMotorId = 17;
 	}
 
 	public static final class ModuleConsts {
@@ -80,10 +93,6 @@ public final class Constants {
 
 		// The factor we divide our desired "metersPerSec" by to actually set our
 		// motor's speed.
-		// TODO: This value's been copy+pasted from the reference project. Once we've
-		// validated that our `getDrivePosition()` works, we can hopefully use
-		// `getDriveVelocity()` to map our [-1, 1] motor inputs to the max velocity
-		// we want the wheels to move at.
 		public static final double maxMetersPerSecToMotorSpeed = 5;
 
 		// TODO: This value's been copy+pasted from the reference project. Need to fine
