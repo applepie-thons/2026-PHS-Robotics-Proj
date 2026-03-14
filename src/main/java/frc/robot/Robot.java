@@ -7,13 +7,13 @@ package frc.robot;
 // import com.studica.frc.AHRS.NavXComType;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
+//import com.ctre.phoenix6.configs.TalonFXConfiguration;
 // import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.TalonFX;
 // import com.studica.frc.AHRS;
 
 import edu.wpi.first.cameraserver.CameraServer;
-// import edu.wpi.first.cscore.UsbCamera;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.TimedRobot;
@@ -44,8 +44,8 @@ public class Robot extends TimedRobot {
 	private TalonFX climb1 = new TalonFX( 17 );
 
 	// ------ Debug variables for controlling swerve modules directly ------ //
-	private int currModuleStrIndex = 0;
-	private String moduleStrs[] = { "lf", "rf", "lb", "rb" };
+	//private int currModuleStrIndex = 0;
+	//private String moduleStrs[] = { "lf", "rf", "lb", "rb" };
 
 	// encoder thingy
 	/*
@@ -58,7 +58,7 @@ public class Robot extends TimedRobot {
 
 	// ----- Deadzone + Hysteresis ----- //
 	// hysteresis currently disabled because josh likes max speed better
-	private double deadzone = 0.2;
+	//private double deadzone = 0.2;
 	private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
 	private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
 	private double increase_speed = 5.5; // how fast the speed increases during hysteresis
@@ -91,10 +91,14 @@ public class Robot extends TimedRobot {
 	// Servo linearActuator = new Servo(0);
 
 	// ------ Camera ------ //
-    
+	private final UsbCamera camera;
 
 	public Robot() {
-		CameraServer.startAutomaticCapture();
+		// CameraServer.startAutomaticCapture();
+		this.camera = CameraServer.startAutomaticCapture();
+        this.camera.setPixelFormat(PixelFormat.kMJPEG);
+        this.camera.setResolution(320, 240);
+        this.camera.setFPS(30);
 	}
 
 	@Override
@@ -107,24 +111,14 @@ public class Robot extends TimedRobot {
 		// Setup for ADXR Gyro
 		adxrGyro.reset();
 		adxrGyro.calibrate();
-
-		
-
 		// testEncoder.reset();
-
-		// CameraServer.startAutomaticCapture(0);
 	}
 
 	@Override
-	public void autonomousInit() {
-		// CameraServer.startAutomaticCapture();
-	}
+	public void autonomousInit() {}
 
 	@Override
 	public void autonomousPeriodic() {
-		// this was for the test encoder
-		// encoderRotations = testEncoder.getDistance();
-		// SmartDashboard.putNumber("test Encoder Value", encoderRotations);
 	}
 
 	@Override
@@ -142,11 +136,11 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("gyro rot degree", swerve_drive.navxMxp.getRotation2d().getDegrees());
 
 		// Divide by 5 to limit translate speed.
-		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		//double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
+		//double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 
 		// Divide by 5 to limit rotation speed.
-		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+		//double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
 
 		// swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 
@@ -162,7 +156,7 @@ public class Robot extends TimedRobot {
 		//SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
 		//SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
 
-		// "I fucking hate sonars so much bro jesus christ"
+		// "I hate sonars so much bro jesus christ"
 		//                					- Michael Milward, 2026
 		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
 		double sensorInches = sensorRange * 39.3442622951;
@@ -176,9 +170,7 @@ public class Robot extends TimedRobot {
 
 
 	@Override
-	public void testInit() {
-		// CameraServer.startAutomaticCapture(0);
-	}
+	public void testInit() {}
 
 	@Override
 	public void testPeriodic() {
@@ -210,44 +202,51 @@ public class Robot extends TimedRobot {
 		}
 
 
-		if (controllerYellow.getBButtonPressed()) {
-			intake.swapIntakingState();
+
+		if (controllerYellow.getBButton()) {
+			intake.setIntakeSpeed(-0.55);
 		}
-		/* 
-		if (controllerRed.getXButtonPressed()) {
-			intake.swapPivotMode();
+		else if (controllerYellow.getYButton()) {
+			intake.setIntakeSpeed(0.55);
 		}
-			*/
+		else {
+			intake.setIntakeSpeed(0);
+		}
 
 		if (controllerYellow.getStartButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.IN);
+			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
 		else if(controllerYellow.getBackButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.OUT);;
+			intake.manualSetIntakePosition(IntakePosition.IN);;
+		}
+
+		if (controllerYellow.getRightBumperButtonPressed()) {
+			intake.swapPivotMode();
 		}
 
 		if (intake.getAutoMode()) {
 			intake.intakePeriodic();
 		}
 		else {
-			if (controllerYellow.getRightBumperButton()) {
-				intake.intakePeriodic(-0.1);
+			if (controllerYellow.getRightTriggerAxis() > 0) {
+				intake.intakePeriodic(-1 * controllerYellow.getRightTriggerAxis());
 			}
-			else if (controllerYellow.getLeftBumperButton()) {
-				intake.intakePeriodic(0.1);
-			}
+			else if (controllerYellow.getLeftTriggerAxis() > 0) {
+				intake.intakePeriodic(controllerYellow.getLeftTriggerAxis());
+			}   
 			else {
 				intake.intakePeriodic(0);
 			}
 		}
-		
 
-		if (controllerYellow.getAButtonPressed()) {
-			shooterState = !shooterState;
-		}
-		if (shooterState) {
+
+		if (controllerYellow.getAButton()) {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
 			shooterLaunch.set(ControlMode.PercentOutput, -1);
+		}
+		else if (controllerYellow.getXButton()) {
+			shooterIntake.set(ControlMode.PercentOutput, 1);
+			shooterLaunch.set(ControlMode.PercentOutput, 1);
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
@@ -257,7 +256,7 @@ public class Robot extends TimedRobot {
 
 		 //turn_to_degree forward + backward
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
-		
+
 		if (controllerRed.getYButton()) {
 			is_auto_turning = true;
 			swerve_drive.turn_to_degree(0, 0.2);
@@ -269,7 +268,7 @@ public class Robot extends TimedRobot {
 		else is_auto_turning = false;
 
 		// ------------ old hysteresis + deadzone that we did a while ago with swerve ---------- //
-		
+
 		// --------not active currently dont expect it to do anything
 
 		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
@@ -284,7 +283,7 @@ public class Robot extends TimedRobot {
 
 		// calculate joystick speed
 		double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
-		
+
 
 		if (joystick_diff > diff_threshold) {
 			hysteresis_mult = 0.0;
@@ -299,18 +298,18 @@ public class Robot extends TimedRobot {
 		// keep at bottom so it only updates at the end and is usable in entire function
 		last_update_stickMagnitude = joystickMagnitude;
 	}
-	
+
 	private void calculate_hysteresis() {
 		hysteresis_mult += increase_speed * deltaTime;
 		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
 	}
-		
+
 
 
 	@Override
   	public void disabledInit() {
 	}
- 
+
 	@Override
 	public void disabledPeriodic() {
 		intake.logIntake();
@@ -320,7 +319,7 @@ public class Robot extends TimedRobot {
 /*
  * // Unused function headers.
  *
- * 
+ *
  *
  * @Override
  * public void simulationInit() {}

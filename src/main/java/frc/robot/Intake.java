@@ -34,10 +34,12 @@ public class Intake
     private TalonFX wheelDrive;
     private TalonFX pivot1;
     private TalonFX pivot2;
+
     private IntakePosition intakeLocation = IntakePosition.START;
-    private boolean intakingState = false;
+    //private boolean intakingState = false;
     private boolean autoMode = false;
-    private final double intakeDeadzone = 0.03;
+    private double intakeSpeed = 0;
+
     private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
 
@@ -91,55 +93,23 @@ public class Intake
         return autoMode;
     }
 
-    public void swapIntakingState() {
-        intakingState = !intakingState;
-    }
-
     public void swapPivotMode() {
         autoMode = !autoMode;
+    }
+
+    public void setIntakeSpeed(double newSpeed) {
+        intakeSpeed = newSpeed;
     }
 
     //Only use for testing
     public void manualSetIntakePosition(IntakePosition newPosition) {
         intakeLocation = newPosition;
-    }
-
-
-    private void setWheelState() {
-        if (intakingState == true) {
-            wheelDrive.set(-0.55);
-        }
-        else {
-            wheelDrive.set(0);
-        }
-        /* double speed = (intakingState) ? -0.55 : 0;
-        wheelDrive.set(speed); */
-    }
+    }    
 
     //TODO if statements here must be edited once proper positions have been implemented
     private void setIntakePosition() {
         //intakeLocation = (intakingState) ? IntakePosition.OUT : IntakePosition.IN;
         pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
-        /* 
-        switch (intakeLocation) {
-            case IN: //0.245 >= 0.25 - 0.05
-                if (pivot1.getPosition().getValueAsDouble() >= intakeLocation.position - intakeDeadzone) {
-                    pivot1.stopMotor();
-                }
-                else {
-                    pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
-                }
-                break;
-            case OUT: //0.05 <= 0 + 0.05
-                if (pivot1.getPosition().getValueAsDouble() <= intakeLocation.position + intakeDeadzone) {
-                    pivot1.stopMotor();
-                }
-                else {
-                    pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
-                }
-                break;
-        }
-                */
     }
 
     private void setIntakePosition(double speed) {
@@ -147,13 +117,13 @@ public class Intake
     }
 
     public void intakePeriodic() {
-        setWheelState();
+        wheelDrive.set(intakeSpeed);
         setIntakePosition();
         logIntake();
     }
 
     public void intakePeriodic(double pivotSpeed) {
-        setWheelState();
+        wheelDrive.set(intakeSpeed);
         setIntakePosition(pivotSpeed);
         logIntake();
     }
@@ -161,7 +131,7 @@ public class Intake
 
     public void logIntake() {
         SmartDashboard.putBoolean("Automode", autoMode);
-        SmartDashboard.putBoolean("Intaking State", intakingState);
+        SmartDashboard.putBoolean("Intaking State", intakeSpeed != 0);
         SmartDashboard.putNumber("intake Piv 2 rotations", pivot2.getPosition().getValueAsDouble());
 		SmartDashboard.putNumber("intake Piv 1 rotations", pivot1.getPosition().getValueAsDouble());
         SmartDashboard.putNumber("intake piv 2 power", pivot2.get());
@@ -208,3 +178,13 @@ public void enumTest() {
     }
     pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
 */
+
+
+/*
+    Springfield 12:30 a.m. I don't have time to document 
+    public void setWheelSpeed() {
+        wheelDrive.set(intakeSpeed);
+         double speed = (intakingState) ? -0.55 : 0;
+        wheelDrive.set(speed); 
+
+ */
