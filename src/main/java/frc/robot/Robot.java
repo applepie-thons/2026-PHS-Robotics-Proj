@@ -6,6 +6,8 @@ package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match;
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.cameraserver.CameraServer;
@@ -18,12 +20,20 @@ import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Servo;
 
 import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
 
 public class Robot extends TimedRobot {
+	enum SwerveSpeedMode {
+		SLOW,
+		DEFAULT,
+		FAST,
+		EXTRA_FAST;
+	}
+
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
 	private final XboxController controllerYellow = new XboxController(1);
@@ -34,6 +44,7 @@ public class Robot extends TimedRobot {
 	private Intake intake = new Intake();
 
 	private TalonFX climb = new TalonFX( ConfigConsts.climbMotorId );
+	private SwerveSpeedMode swerveSpeedMode = SwerveSpeedMode.DEFAULT;
 
 	// ----- Swerve ----- //
 	private SwerveDrive swerve_drive = new SwerveDrive();
@@ -57,6 +68,11 @@ public class Robot extends TimedRobot {
 	private double last_update_timer = 0.0;
 	private double deltaTime = 0.0;
 
+	private double auto_start_time = 0;
+
+	private double auto_shake_state = 0;
+	private double auto_shake_elapsed_time = 0;
+
 	// ------ Gyro ------ //
 	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
 
@@ -72,6 +88,10 @@ public class Robot extends TimedRobot {
 
 	// ------ Camera ------ //
 	private final UsbCamera camera;
+
+	// Linear Actuator
+	Servo linearAcutator = new Servo(0);
+	private double servoLastUpdateTime = 0;
 
 	public Robot() {
 		// TODO (Sahil): Check that is actually drops the camera's resolution.
@@ -94,52 +114,142 @@ public class Robot extends TimedRobot {
 
 		// Reset the climb motor encoder's position.
 		climb.setPosition(0);
+		climb.setNeutralMode(NeutralModeValue.Brake);
+
+		servoLastUpdateTime = Timer.getFPGATimestamp();
+	}
+
+	public void servoPeriodic() {
+		double currTime = Timer.getFPGATimestamp();
+		double servoElapsedTime = currTime - servoLastUpdateTime;
+		
+		double currValue = linearAcutator.get();
+		double newValue;
+
+		double servoIn = 0.2;
+		double servoOut = 0.34;
+		
+		if (currValue <= servoIn && servoElapsedTime > 1) {
+			newValue = servoOut;
+			servoLastUpdateTime = currTime;
+		} else if (currValue >= servoOut && servoElapsedTime > 1) {
+			newValue = servoIn;
+			servoLastUpdateTime = currTime;
+		} else {
+			newValue = currValue;
+		}
+		linearAcutator.set(newValue);
 	}
 
 	@Override
-	public void autonomousInit() {}
+	public void autonomousInit() {
+		auto_start_time = Timer.getFPGATimestamp();
+		linearAcutator.set(0);
+	}
 
 	@Override
-	public void autonomousPeriodic() {}
+	public void autonomousPeriodic() {
+		double currentTime = Timer.getFPGATimestamp();
+		double elapsedTime = currentTime - auto_start_time;
+
+		if (elapsedTime < 0.25) {
+			shooterLaunch.set(ControlMode.PercentOutput, -1);
+		}
+		else {
+			shooterIntake.set(ControlMode.PercentOutput, -1);
+			shooterLaunch.set(ControlMode.PercentOutput, -1);
+		}
+
+		servoPeriodic();
+	
+		/*
+		auto_shake_state = auto_shake_state % 2;
+		double state_time = elapsedTime - auto_shake_elapsed_time;
+		if(auto_shake_state == 0){
+			swerve_drive.turn_to_degree(90, 0.1);
+			
+			if(state_time > 0.25){
+				auto_shake_elapsed_time = elapsedTime;
+				auto_shake_state += 1;
+			}
+		}
+		else if(auto_shake_state == 1){
+			swerve_drive.turn_to_degree(270, 0.1);
+			
+			if(state_time > 0.25){
+				auto_shake_elapsed_time = elapsedTime;
+				auto_shake_state += 1;
+			}
+		}
+		else if(auto_shake_state == 2){
+			swerve_drive.turn_to_degree(0, 0.1);
+			
+			if(state_time > 0.25){
+				auto_shake_elapsed_time = elapsedTime;
+				auto_shake_state += 1;
+			}
+		}
+		*/
+	}
 
 	public void redControllerPeriodic() {
 		// ------------------------------- Swerve ------------------------------- //
 		double turn_tolerance = 0.2;
+		/*
 		if (controllerRed.getYButton()) {
 			swerve_drive.turn_to_degree(0, turn_tolerance);
 		} else if (controllerRed.getXButton()) {
 			swerve_drive.turn_to_degree(180, turn_tolerance);
-		} else {
-			// Divide by 5 to limit translate speed.
-			double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-			double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-			// Divide by 5 to limit rotation speed.
-			double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
+		*/
 
-			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		if (controllerRed.getXButtonPressed()) {
+			swerveSpeedMode = SwerveSpeedMode.SLOW;
+		} else if (controllerRed.getAButtonPressed()) {
+			swerveSpeedMode = SwerveSpeedMode.DEFAULT;
+		} else if (controllerRed.getBButtonPressed()) {
+			swerveSpeedMode = SwerveSpeedMode.FAST;
+		} else if (controllerRed.getYButtonPressed()) {
+			swerveSpeedMode = SwerveSpeedMode.EXTRA_FAST;
 		}
 
+		double speedThrottle;
+		if (swerveSpeedMode == SwerveSpeedMode.SLOW) {
+			speedThrottle = 7.5;
+		} else if (swerveSpeedMode == SwerveSpeedMode.DEFAULT) {
+			speedThrottle = 5;
+		} else if (swerveSpeedMode == SwerveSpeedMode.FAST) {
+			speedThrottle = 2.5;
+		} else if (swerveSpeedMode == SwerveSpeedMode.EXTRA_FAST) {
+			speedThrottle = 2;
+		} else {
+			speedThrottle = 5;
+		}
+
+		// Divide by 5 to limit translate speed.
+		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
+		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
+		// Divide by 5 to limit rotation speed.
+		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / speedThrottle);
+
+		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+
 		// ------------------------------- Climb ------------------------------- //
-		// TODO (Sahil): Are 'extend' and 'retract' named correctly?
 		// Square the inputs for finer-grain control.
-		double climbExtendSpeed = controllerRed.getLeftTriggerAxis();
-		climbExtendSpeed *= climbExtendSpeed;
-		double climbRetractSpeed = controllerRed.getRightTriggerAxis();
-		climbRetractSpeed *= climbRetractSpeed * -1;
-		double climbSpeed = climbExtendSpeed + climbRetractSpeed;
+		double climbRetractSpeed = controllerRed.getLeftTriggerAxis();
+		climbRetractSpeed *= climbRetractSpeed;
+		double climbExtendSpeed = controllerRed.getRightTriggerAxis();
+		climbExtendSpeed *= climbExtendSpeed * -1;
 
-		// TODO (Sahil): Once I've checked if the climbing encoder needs to be reversed,
-		// and what max height should be, set this if the "Select" button is held down.
-		boolean ignoreClimbLimit = true;
+		double climbSpeed = (climbExtendSpeed + climbRetractSpeed);
 
+		boolean ignoreClimbLimit = controllerRed.getBackButton();
 		if (!ignoreClimbLimit) {
 			double currClimbPosition = climb.getPosition().getValueAsDouble();
-			// TODO (Sahil): Need to figure out what the actual max is.
-			double maxClimbPosition = 1337;
+			double maxClimbPosition = -49;
 
-			if (climbSpeed < 0 && currClimbPosition <= 0) {
+			if (climbSpeed > 0 && currClimbPosition >= 0) {
 				climbSpeed = 0;
-			} else if (climbSpeed > 0 && currClimbPosition >= maxClimbPosition) {
+			} else if (climbSpeed < 0 && currClimbPosition <= maxClimbPosition) {
 				climbSpeed = 0;
 			}
 		}
@@ -206,23 +316,34 @@ public class Robot extends TimedRobot {
 		// ------------------------------- Shooter ------------------------------- //
 		if (controllerYellow.getAButton()) {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
-			shooterLaunch.set(ControlMode.PercentOutput, -1);
 		}
 		else if (controllerYellow.getXButton()) {
 			shooterIntake.set(ControlMode.PercentOutput, 1);
-			shooterLaunch.set(ControlMode.PercentOutput, 1);
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
+			
+		}
+
+		if (controllerYellow.getLeftBumperButton()) {
+			// Shoot
+			shooterLaunch.set(ControlMode.PercentOutput, -1);
+		} else if (controllerYellow.getXButton()) {
+			// Unshoot
+			shooterLaunch.set(ControlMode.PercentOutput, 1);
+		} else {
 			shooterLaunch.set(ControlMode.PercentOutput, 0);
 		}
 	}
 
 	@Override
-	public void teleopInit() {}
+	public void teleopInit() {
+		linearAcutator.set(0);
+	}
 
 	@Override
 	public void teleopPeriodic() {
+		servoPeriodic();
 		redControllerPeriodic();
 		yellowControllerPeriodic();
 	}

@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
-	private PIDController turn_pid = new PIDController(0.2, 0, 0);
+	private PIDController turn_pid = new PIDController(0.25, 0, 0);
 
 	// Shortened names for convenience:
 	// * lf: left-front
@@ -124,7 +124,7 @@ public class SwerveDrive {
 	}
 
 	public void turn_to_degree(double degree, double errorTolerance) {
-		double current_degree = navxMxp.getRotation2d().getRadians();
+		double current_degree = -navxMxp.getRotation2d().getRadians();
 
 		/*
 		if(current_degree < 0.0) {
@@ -143,6 +143,8 @@ public class SwerveDrive {
 		SmartDashboard.putNumber("turn direction", direction);
 		*/
 
+		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is
+		// to match the gyro's radian reading which spans from -pi to pi.
 		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
 		SmartDashboard.putNumber("pid output", result);
 		double error = turn_pid.getError();

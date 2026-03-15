@@ -23,8 +23,8 @@ public class Intake
     //TODO get real values for in and out positions
     enum IntakePosition {
         START(0),
-        IN(-0.155),
-        OUT(-0.325);
+        IN(-0.11),
+        OUT(-0.33);
 
         private double position;
         IntakePosition(double rotations) {
