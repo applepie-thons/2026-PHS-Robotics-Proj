@@ -7,6 +7,8 @@ import com.studica.frc.AHRS.NavXComType;
 import com.studica.frc.AHRS;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
@@ -65,12 +67,19 @@ public class SwerveDrive {
 
 	public AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
+	public SwerveDriveOdometry odometry;
+
 	public SwerveDrive() {
 		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block other initialization.
 		new Thread(() -> {
 			try {
 				Thread.sleep(1000);
 				navxMxp.reset();
+
+				// initialize after gyro is reset, because it needs the gyro position for initialization
+				//SwerveModulePosition[] module_positions = new SwerveModulePosition[] {new SwerveModulePosition(lfModule.getDrivePosition(), )}
+				//odometry = new SwerveDriveOdometry(new SwerveDriveKinematics(null), navxMxp.getRotation2d(), module_positions);
+
 			} catch (Exception e) {
 			}
 		}).start();

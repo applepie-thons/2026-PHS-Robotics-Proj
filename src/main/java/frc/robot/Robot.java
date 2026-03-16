@@ -152,11 +152,11 @@ public class Robot extends TimedRobot {
 		double elapsedTime = currentTime - auto_start_time;
 
 		if (elapsedTime < 0.25) {
-			shooterLaunch.set(-1);
+			shooterLaunch.set(-0.75);
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
-			shooterLaunch.set(-1);
+			shooterLaunch.set(-0.75);
 		}
 
 		servoPeriodic();
@@ -297,7 +297,7 @@ public class Robot extends TimedRobot {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
 		}
 		else if (controllerYellow.getXButton()) {
-			shooterIntake.set(ControlMode.PercentOutput, 1);
+			shooterIntake.set(ControlMode.PercentOutput, 0.25);
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
@@ -306,10 +306,10 @@ public class Robot extends TimedRobot {
 
 		if (controllerYellow.getLeftBumperButton()) {
 			// Shoot
-			shooterLaunch.set(-1);
+			shooterLaunch.set(-0.75);
 		} else if (controllerYellow.getXButton()) {
 			// Unshoot
-			shooterLaunch.set(1);
+			shooterLaunch.set(0.75);
 		} else {
 			shooterLaunch.set(0);
 		}
