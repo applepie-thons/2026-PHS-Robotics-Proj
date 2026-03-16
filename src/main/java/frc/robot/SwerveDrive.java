@@ -16,7 +16,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
-	private PIDController turn_pid = new PIDController(0.25, 0, 0);
+	private PIDController turn_pid = new PIDController(1.8, 0, 0);
 
 	// Shortened names for convenience:
 	// * lf: left-front
@@ -66,8 +66,7 @@ public class SwerveDrive {
 	public AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
 	public SwerveDrive() {
-		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block
-		// other initialization.
+		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block other initialization.
 		new Thread(() -> {
 			try {
 				Thread.sleep(1000);
@@ -76,25 +75,17 @@ public class SwerveDrive {
 			}
 		}).start();
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
-		turn_pid.setTolerance(0);
+		turn_pid.setTolerance(0.035);
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
-		// TODO: Check that "getRotation2d()" returns an angle in radians, and that
-		// it is CCW positive.
+		// TODO: Check that "getRotation2d()" returns an angle in radians, and that it is CCW positive.
 		ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
 				xSpeed, ySpeed, turnSpeed, navxMxp.getRotation2d());
 
 		SwerveModuleState[] moduleStates = DriveConsts.driveKinematics.toSwerveModuleStates(chassisSpeeds);
 		SwerveDriveKinematics.desaturateWheelSpeeds(
 				moduleStates, DriveConsts.maxMetersPerSecToMotorSpeed);
-
-		/*
-		 * lfModule.setDesiredState(moduleStates[0]);
-		 * rfModule.setDesiredState(moduleStates[1]);
-		 * lbModule.setDesiredState(moduleStates[2]);
-		 * rbModule.setDesiredState(moduleStates[3]);
-		 */
 
 		boolean ignoreLowSpeed = true;
 		lfModule.setDesiredState(moduleStates[1], ignoreLowSpeed);
@@ -126,35 +117,17 @@ public class SwerveDrive {
 	public void turn_to_degree(double degree, double errorTolerance) {
 		double current_degree = -navxMxp.getRotation2d().getRadians();
 
-		/*
-		if(current_degree < 0.0) {
-			current_degree += Math.floor(Math.abs(current_degree) / 360) + 1 * 360;
-		}
-		current_degree = current_degree % 360;
-		SmartDashboard.putNumber("current in range degree", current_degree);
-		double degree_diff = degree - current_degree;
-
-		int direction = -1;
-		//int direction = (degree_diff < (degree + 180.0) % 360) ? -1 : 1;
-
-		if (current_degree < (degree + 180.0) % 360){
-			direction *= -1;
-		}
-		SmartDashboard.putNumber("turn direction", direction);
-		*/
-
-		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is
-		// to match the gyro's radian reading which spans from -pi to pi.
+		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is to match the gyro's radian reading which spans from -pi to pi.
 		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
 		SmartDashboard.putNumber("pid output", result);
 		double error = turn_pid.getError();
-		if(!(error >= Math.PI - errorTolerance || error <= -Math.PI + errorTolerance)){
+		if(!turn_pid.atSetpoint()){
 			setModules(0.0, 0.0, result);
 		}
 		else{
 			setModules(0.0, 0.0, 0.0);
 		}
-		SmartDashboard.putNumber("pid error", turn_pid.getError());
+		SmartDashboard.putNumber("pid error", error);
 	}
 
 
@@ -163,9 +136,7 @@ public class SwerveDrive {
 		return deg * (Math.PI/180);
 	}
 
-	/***********************************************************************************/
-	/* Helper functions/variables for debugging
-	/***********************************************************************************/
+	// ------- Helper functions/variables for debugging ------- //
 	public void setModuleDirect(String moduleId, double speedMotorInput, double directionMotorInput) {
 		switch(moduleId) {
 		case "lf":

@@ -7,7 +7,7 @@ package frc.robot;
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match;
+//import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match; (might need later)
 import com.ctre.phoenix6.hardware.TalonFX;
 
 import edu.wpi.first.cameraserver.CameraServer;
@@ -34,13 +34,21 @@ public class Robot extends TimedRobot {
 		EXTRA_FAST;
 	}
 
+	enum AutoState {
+		FACE_LEFT,
+		FACE_RIGHT,
+		FACE_FORWARD,
+		FACE_BACKWARD,
+		CLIMB_EXTEND,
+		CLIMB_RETRACT;
+	}
+
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
 	private final XboxController controllerYellow = new XboxController(1);
 
 	private TalonSRX shooterIntake = new TalonSRX( ConfigConsts.shooterInMotorId );
-	private TalonSRX shooterLaunch = new TalonSRX( ConfigConsts.shooterOutMotorId );
-
+	private TalonFX shooterLaunch = new TalonFX(27);
 	private Intake intake = new Intake();
 
 	private TalonFX climb = new TalonFX( ConfigConsts.climbMotorId );
@@ -53,34 +61,25 @@ public class Robot extends TimedRobot {
 	//private int currModuleStrIndex = 0;
 	//private String moduleStrs[] = { "lf", "rf", "lb", "rb" };
 
-	// ----- Deadzone + Hysteresis ----- //
+	// ----- Deadzone + Hysteresis (Disabled) ----- //
 	// hysteresis currently disabled because josh likes max speed better
+	// to enable, multiply motor output by hysteresis_mult
 	//private double deadzone = 0.2;
 	private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
 	private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
 	private double increase_speed = 5.5; // how fast the speed increases during hysteresis
 	private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
 
-	// ---- turn to degree ---- //
+	// ---- Turn to Degree ---- //
 	private boolean is_auto_turning = false;
 
-	// ---- deltatime ----//
+	// ---- deltaTime ----//
 	private double last_update_timer = 0.0;
 	private double deltaTime = 0.0;
-
 	private double auto_start_time = 0;
-
-	private double auto_shake_state = 0;
-	private double auto_shake_elapsed_time = 0;
 
 	// ------ Gyro ------ //
 	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
-
-	/* // old turn to degree function //
-	private boolean is_auto_turning = false;
-	private boolean first_auto_turn_call = true;
-	private double auto_turn_direct = 1.0;
-	*/
 
 	// ------ Sonar ------ //
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
@@ -127,12 +126,12 @@ public class Robot extends TimedRobot {
 		double newValue;
 
 		double servoIn = 0.2;
-		double servoOut = 0.34;
+		double servoOut = 0.38;
 		
-		if (currValue <= servoIn && servoElapsedTime > 1) {
+		if (currValue <= servoIn && servoElapsedTime > 2.6) {
 			newValue = servoOut;
 			servoLastUpdateTime = currTime;
-		} else if (currValue >= servoOut && servoElapsedTime > 1) {
+		} else if (currValue >= servoOut && servoElapsedTime > 2.6) {
 			newValue = servoIn;
 			servoLastUpdateTime = currTime;
 		} else {
@@ -153,49 +152,20 @@ public class Robot extends TimedRobot {
 		double elapsedTime = currentTime - auto_start_time;
 
 		if (elapsedTime < 0.25) {
-			shooterLaunch.set(ControlMode.PercentOutput, -1);
+			shooterLaunch.set(-1);
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, -1);
-			shooterLaunch.set(ControlMode.PercentOutput, -1);
+			shooterLaunch.set(-1);
 		}
 
 		servoPeriodic();
-	
-		/*
-		auto_shake_state = auto_shake_state % 2;
-		double state_time = elapsedTime - auto_shake_elapsed_time;
-		if(auto_shake_state == 0){
-			swerve_drive.turn_to_degree(90, 0.1);
-			
-			if(state_time > 0.25){
-				auto_shake_elapsed_time = elapsedTime;
-				auto_shake_state += 1;
-			}
-		}
-		else if(auto_shake_state == 1){
-			swerve_drive.turn_to_degree(270, 0.1);
-			
-			if(state_time > 0.25){
-				auto_shake_elapsed_time = elapsedTime;
-				auto_shake_state += 1;
-			}
-		}
-		else if(auto_shake_state == 2){
-			swerve_drive.turn_to_degree(0, 0.1);
-			
-			if(state_time > 0.25){
-				auto_shake_elapsed_time = elapsedTime;
-				auto_shake_state += 1;
-			}
-		}
-		*/
 	}
 
 	public void redControllerPeriodic() {
 		// ------------------------------- Swerve ------------------------------- //
-		double turn_tolerance = 0.2;
 		/*
+		double turn_tolerance = 0.2;
 		if (controllerRed.getYButton()) {
 			swerve_drive.turn_to_degree(0, turn_tolerance);
 		} else if (controllerRed.getXButton()) {
@@ -216,11 +186,11 @@ public class Robot extends TimedRobot {
 		if (swerveSpeedMode == SwerveSpeedMode.SLOW) {
 			speedThrottle = 7.5;
 		} else if (swerveSpeedMode == SwerveSpeedMode.DEFAULT) {
-			speedThrottle = 5;
+			speedThrottle = 4.2;
 		} else if (swerveSpeedMode == SwerveSpeedMode.FAST) {
 			speedThrottle = 2.5;
 		} else if (swerveSpeedMode == SwerveSpeedMode.EXTRA_FAST) {
-			speedThrottle = 2;
+			speedThrottle = 1.8;
 		} else {
 			speedThrottle = 5;
 		}
@@ -230,14 +200,15 @@ public class Robot extends TimedRobot {
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / speedThrottle);
-
-		swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		if(!is_auto_turning){
+			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		}
 
 		// ------------------------------- Climb ------------------------------- //
 		// Square the inputs for finer-grain control.
-		double climbRetractSpeed = controllerRed.getLeftTriggerAxis();
+		double climbRetractSpeed = controllerRed.getRightTriggerAxis();
 		climbRetractSpeed *= climbRetractSpeed;
-		double climbExtendSpeed = controllerRed.getRightTriggerAxis();
+		double climbExtendSpeed = controllerRed.getLeftTriggerAxis();
 		climbExtendSpeed *= climbExtendSpeed * -1;
 
 		double climbSpeed = (climbExtendSpeed + climbRetractSpeed);
@@ -245,23 +216,34 @@ public class Robot extends TimedRobot {
 		boolean ignoreClimbLimit = controllerRed.getBackButton();
 		if (!ignoreClimbLimit) {
 			double currClimbPosition = climb.getPosition().getValueAsDouble();
-			double maxClimbPosition = -49;
+			double maxClimbPosition = 69;
 
-			if (climbSpeed > 0 && currClimbPosition >= 0) {
+			if (climbSpeed < 0 && currClimbPosition <= 0) {
 				climbSpeed = 0;
-			} else if (climbSpeed < 0 && currClimbPosition <= maxClimbPosition) {
+			} else if (climbSpeed > 0 && currClimbPosition >= maxClimbPosition) {
 				climbSpeed = 0;
 			}
 		}
 		climb.set(climbSpeed);
 
 		if (controllerRed.getStartButtonPressed()) {
-			// Reset the climb motor encoder's position on a button press. Mainly for
-			// debugging purposes.
+			// Reset the climb motor encoder's position on a button press. Mainly for debugging purposes.
 			climb.setPosition(0);
 		}
 
 		SmartDashboard.putNumber("currClimbPosition", climb.getPosition().getValueAsDouble());
+
+		if (controllerRed.getLeftBumperButton()) {
+			is_auto_turning = true;
+			swerve_drive.turn_to_degree(0, 0.2);
+		}
+		else if (controllerRed.getRightBumperButton()) {
+			is_auto_turning = true;
+			swerve_drive.turn_to_degree(180, 0.2);
+		}
+		else{
+			is_auto_turning = false;
+		}
 	}
 
 	public void yellowControllerPeriodic() {
@@ -277,8 +259,7 @@ public class Robot extends TimedRobot {
 			intake.setIntakeSpeed(0);
 		}
 
-		// Set desired position of the intake arm when in `intake.getAutoMode()`
-		// is true.
+		// Set desired position of the intake arm when in `intake.getAutoMode()` is true.
 		if (controllerYellow.getStartButtonPressed()) {
 			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
@@ -286,18 +267,16 @@ public class Robot extends TimedRobot {
 			intake.manualSetIntakePosition(IntakePosition.IN);;
 		}
 
-		// Toggle between the intake arm control modes. There are two different
-		// control modes, tracked by the boolean return by `intake.getAutoMode()`.
-		//
-		//     - autoMode=True: Using PID, the arm will move to the position specified
-		//                      by `intake.manualSetIntakePosition()`.
-		//     - autoMode=False: The arm is controlled directly via an analog user input.
+		/*  Toggle between the intake arm control modes. There are two different control modes, tracked by the boolean return by `intake.getAutoMode()`.
+
+		    - autoMode=True: Using PID, the arm will move to the position specified by `intake.manualSetIntakePosition()`.
+		    - autoMode=False: The arm is controlled directly via an analog user input.
+		*/
 		if (controllerYellow.getRightBumperButtonPressed()) {
 			intake.swapPivotMode();
 		}
 
-		// Actually set the state of the intake wheels and arm motors based on what was
-		// configured above.
+		// Actually set the state of the intake wheels and arm motors based on what was configured above.
 		if (intake.getAutoMode()) {
 			intake.intakePeriodic();
 		}
@@ -327,12 +306,12 @@ public class Robot extends TimedRobot {
 
 		if (controllerYellow.getLeftBumperButton()) {
 			// Shoot
-			shooterLaunch.set(ControlMode.PercentOutput, -1);
+			shooterLaunch.set(-1);
 		} else if (controllerYellow.getXButton()) {
 			// Unshoot
-			shooterLaunch.set(ControlMode.PercentOutput, 1);
+			shooterLaunch.set(1);
 		} else {
-			shooterLaunch.set(ControlMode.PercentOutput, 0);
+			shooterLaunch.set(0);
 		}
 	}
 
@@ -382,14 +361,12 @@ public class Robot extends TimedRobot {
 		else is_auto_turning = false;
 
 		// ------------ old hysteresis + deadzone that we did a while ago with swerve ---------- //
-
-		// --------not active currently dont expect it to do anything
+		// ---------- not active currently dont expect it to do anything ---------- //
 
 		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
 
 		/*
-		// commented out because this deadzone will only work for swerve drive and cause
-		// problems for tank
+		// commented out because this deadzone will only work for swerve drive and cause problems for tank
 		if(deadzone > joystickMagnitude){
 			throttle = 0.0;
 		}
@@ -429,29 +406,28 @@ public class Robot extends TimedRobot {
 	}
 
 	public void sonarTestPeriodic() {
-		// double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
-		// double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
-		// double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
+		/* 
+		// ---------- Sonar (Unused) ---------- //
+		- Yes, I still hate sonar. (Michael Milward, 2026)
 
-		// SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
-		// SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
+		double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
+		double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
+		double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
 
-		// "I hate sonars so much bro jesus christ"
-		//                					- Michael Milward, 2026
+		SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
+		SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
+
 		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
 		double sensorInches = sensorRange * 39.3442622951;
 		double sensorCentimeters = sensorInches * 2.54;
 		SmartDashboard.putNumber("Sensor Range", sensorRange);
 		SmartDashboard.putNumber("Sensor Range (Inches)", sensorInches);
 		SmartDashboard.putNumber("Sensor Range (Centimeters)", sensorCentimeters);
+		*/
 	}
 }
 
 /*
- * // Unused function headers.
- *
- *
- *
  * @Override
  * public void simulationInit() {}
  *
