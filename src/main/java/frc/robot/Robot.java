@@ -260,6 +260,7 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putNumber("currClimbPosition", climb.getPosition().getValueAsDouble());
 
+		/* 
 		if (controllerRed.getLeftBumperButton()) {
 			is_auto_turning = true;
 			swerve_drive.turn_to_degree(0, 0.2);
@@ -271,6 +272,16 @@ public class Robot extends TimedRobot {
 		else{
 			is_auto_turning = false;
 		}
+		*/
+
+		if(!(controllerRed.getPOV() == -1)){
+			is_auto_turning = true;
+			swerve_drive.turn_to_degree(controllerRed.getPOV() - 180, 0.2);
+		}
+		else{
+			is_auto_turning = false;
+		}
+		
 	}
 
 	public void yellowControllerPeriodic() {
