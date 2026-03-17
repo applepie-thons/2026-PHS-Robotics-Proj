@@ -14,11 +14,17 @@ import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
 	private PIDController turn_pid = new PIDController(1.8, 0, 0);
+
+
+	// --- For move meters function --- //
+	private double initial_module_dist = 0.0;
+	private PIDController move_pid = new PIDController(0.6, 0, 0);
 
 	// Shortened names for convenience:
 	// * lf: left-front
@@ -85,6 +91,8 @@ public class SwerveDrive {
 		}).start();
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid.setTolerance(0.035);
+
+		move_pid.setTolerance(0.2);
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
@@ -123,20 +131,55 @@ public class SwerveDrive {
 		rbModule.stop();
 	}
 
-	public void turn_to_degree(double degree, double errorTolerance) {
+
+	/**
+	 * moves the robot the specified distance with a direction that is a vector(if needed, convert a degree to a vector)
+	 * @param first_call : if this is the first time the function was called in the current request (not just at robot initialization)
+	 * @return if at specified distance
+	 */
+	public boolean move_meters_in_direction(double meters, double Xdirection, double Ydirection, boolean first_call){
+		
+		double avg_dist = GetAvgModuleDist();
+		// gets the starting position to subtract from position because we only need the relative position
+		if(first_call){
+			initial_module_dist = avg_dist;
+		}
+		double current_dist = avg_dist - initial_module_dist;
+	
+		double pid_result = move_pid.calculate(current_dist, meters);
+
+		// smartdashboard things
+		SmartDashboard.putNumber("average module distance", avg_dist);
+		SmartDashboard.putNumber("move pid result", pid_result);
+		SmartDashboard.putNumber("move pid error", move_pid.getError());
+
+		if(!move_pid.atSetpoint()){
+			setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
+			return(false);
+		}
+		else{
+			setModules(0, 0, 0);
+			return(true);
+		}
+
+	}
+
+	public boolean turn_to_degree(double degree, double errorTolerance) {
 		double current_degree = -navxMxp.getRotation2d().getRadians();
 
 		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is to match the gyro's radian reading which spans from -pi to pi.
 		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
 		SmartDashboard.putNumber("pid output", result);
 		double error = turn_pid.getError();
+		SmartDashboard.putNumber("pid error", error);
 		if(!turn_pid.atSetpoint()){
 			setModules(0.0, 0.0, result);
+			return(false);
 		}
 		else{
 			setModules(0.0, 0.0, 0.0);
+			return(true);
 		}
-		SmartDashboard.putNumber("pid error", error);
 	}
 
 
@@ -145,7 +188,22 @@ public class SwerveDrive {
 		return deg * (Math.PI/180);
 	}
 
+
 	// ------- Helper functions/variables for debugging ------- //
+
+	/**
+	 * @return average module distance that is positive, regardless of original sign.
+	 */
+	public double GetAvgModuleDist(){
+		double lfdist = Math.abs(lfModule.getDrivePosition());
+		double lbdist = Math.abs(lbModule.getDrivePosition());
+		double rfdist = Math.abs(rfModule.getDrivePosition());
+		double rbdist = Math.abs(rbModule.getDrivePosition());
+
+		return((lfdist + lbdist + rfdist + rbdist) / 4);
+	}
+
+
 	public void setModuleDirect(String moduleId, double speedMotorInput, double directionMotorInput) {
 		switch(moduleId) {
 		case "lf":

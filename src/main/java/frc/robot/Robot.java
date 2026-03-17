@@ -160,6 +160,33 @@ public class Robot extends TimedRobot {
 		}
 
 		servoPeriodic();
+
+		// --- a way to use the move meters function in auto (since its kind of confusing and bad) --------------------- //
+		/*
+		int current_auto_step = 1;
+		boolean first_call = true;
+		// ^^ both go in constructor ^^
+		if(current_auto_step == 1){
+			if(swerve_drive.move_meters_in_direction(2, 1, 0, first_call)){
+				current_auto_step += 1;
+				first_call = true;
+			}else{
+				first_call = false;
+			}
+			
+		}
+		else if(current_auto_step == 2){
+			if(swerve_drive.move_meters_in_direction(2, -1, 0, first_call)){
+				current_auto_step += 1;
+				first_call = true;
+			}else{
+				first_call = false;
+			}
+		}
+
+		// with this, the robot will (hopefully) move forward 2 meters then back 2 meters
+		*/
+
 	}
 
 	public void redControllerPeriodic() {
@@ -351,12 +378,10 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
 
 		if (controllerRed.getYButton()) {
-			is_auto_turning = true;
-			swerve_drive.turn_to_degree(0, 0.2);
+			is_auto_turning = !swerve_drive.turn_to_degree(0, 0.2);
 		}
 		else if (controllerRed.getXButton()) {
-			is_auto_turning = true;
-			swerve_drive.turn_to_degree(180, 0.2);
+			is_auto_turning = !swerve_drive.turn_to_degree(180, 0.2);
 		}
 		else is_auto_turning = false;
 
