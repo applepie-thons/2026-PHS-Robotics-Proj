@@ -6,10 +6,9 @@ package frc.robot;
 
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
+
 //import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match; (might need later)
 import com.ctre.phoenix6.hardware.TalonFX;
-
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
@@ -50,8 +49,8 @@ public class Robot extends TimedRobot {
 	private TalonSRX shooterIntake = new TalonSRX( ConfigConsts.shooterInMotorId );
 	private TalonFX shooterLaunch = new TalonFX(27);
 	private Intake intake = new Intake();
+	private Climb climb = new Climb();
 
-	private TalonFX climb = new TalonFX( ConfigConsts.climbMotorId );
 	private SwerveSpeedMode swerveSpeedMode = SwerveSpeedMode.DEFAULT;
 
 	// ----- Swerve ----- //
@@ -95,9 +94,9 @@ public class Robot extends TimedRobot {
 	public Robot() {
 		// TODO (Sahil): Check that is actually drops the camera's resolution.
 		this.camera = CameraServer.startAutomaticCapture();
-        this.camera.setPixelFormat(PixelFormat.kMJPEG);
-        this.camera.setResolution(320, 240);
-        this.camera.setFPS(30);
+		this.camera.setPixelFormat(PixelFormat.kMJPEG);
+		this.camera.setResolution(320, 240);
+		this.camera.setFPS(30);
 	}
 
 	@Override
@@ -110,24 +109,19 @@ public class Robot extends TimedRobot {
 		// Setup for ADXR Gyro
 		adxrGyro.reset();
 		adxrGyro.calibrate();
-
-		// Reset the climb motor encoder's position.
-		climb.setPosition(0);
-		climb.setNeutralMode(NeutralModeValue.Brake);
-
 		servoLastUpdateTime = Timer.getFPGATimestamp();
 	}
 
 	public void servoPeriodic() {
 		double currTime = Timer.getFPGATimestamp();
 		double servoElapsedTime = currTime - servoLastUpdateTime;
-		
+
 		double currValue = linearAcutator.get();
 		double newValue;
 
 		double servoIn = 0.2;
 		double servoOut = 0.38;
-		
+
 		if (currValue <= servoIn && servoElapsedTime > 2.6) {
 			newValue = servoOut;
 			servoLastUpdateTime = currTime;
@@ -173,7 +167,7 @@ public class Robot extends TimedRobot {
 			}else{
 				first_call = false;
 			}
-			
+
 		}
 		else if(current_auto_step == 2){
 			if(swerve_drive.move_meters_in_direction(2, -1, 0, first_call)){
@@ -233,35 +227,18 @@ public class Robot extends TimedRobot {
 
 		// ------------------------------- Climb ------------------------------- //
 		// Square the inputs for finer-grain control.
-		double climbRetractSpeed = controllerRed.getRightTriggerAxis();
-		climbRetractSpeed *= climbRetractSpeed;
-		double climbExtendSpeed = controllerRed.getLeftTriggerAxis();
-		climbExtendSpeed *= climbExtendSpeed * -1;
-
-		double climbSpeed = (climbExtendSpeed + climbRetractSpeed);
-
+		// TODO: I think something was rewired during competition, so the names 'retract'
+		// and 'extend' have opposite meanings. Double check that.
+		double climbRetractSpeed = Math.pow(controllerRed.getRightTriggerAxis(), 2);
+		double climbExtendSpeed = Math.pow(controllerRed.getLeftTriggerAxis(), 2) * -1;
 		boolean ignoreClimbLimit = controllerRed.getBackButton();
-		if (!ignoreClimbLimit) {
-			double currClimbPosition = climb.getPosition().getValueAsDouble();
-			double maxClimbPosition = 69;
-
-			if (climbSpeed < 0 && currClimbPosition <= 0) {
-				climbSpeed = 0;
-			} else if (climbSpeed > 0 && currClimbPosition >= maxClimbPosition) {
-				climbSpeed = 0;
-			}
-		}
-		climb.set(climbSpeed);
-
+		climb.set(climbRetractSpeed, climbExtendSpeed, ignoreClimbLimit );
 		if (controllerRed.getStartButtonPressed()) {
-			// Reset the climb motor encoder's position on a button press. Mainly for debugging purposes.
-			climb.setPosition(0);
+			climb.resetEncoder();
 		}
-
-		SmartDashboard.putNumber("currClimbPosition", climb.getPosition().getValueAsDouble());
 
 		// old button-related turn_to_degree
-		/* 
+		/*
 		if (controllerRed.getLeftBumperButton()) {
 			is_auto_turning = true;
 			swerve_drive.turn_to_degree(0, 0.2);
@@ -282,7 +259,7 @@ public class Robot extends TimedRobot {
 		else{
 			is_auto_turning = false;
 		}
-		
+
 	}
 
 	public void yellowControllerPeriodic() {
@@ -306,10 +283,10 @@ public class Robot extends TimedRobot {
 			intake.manualSetIntakePosition(IntakePosition.IN);;
 		}
 
-		/*  Toggle between the intake arm control modes. There are two different control modes, tracked by the boolean return by `intake.getAutoMode()`.
+		/*	Toggle between the intake arm control modes. There are two different control modes, tracked by the boolean return by `intake.getAutoMode()`.
 
-		    - autoMode=True: Using PID, the arm will move to the position specified by `intake.manualSetIntakePosition()`.
-		    - autoMode=False: The arm is controlled directly via an analog user input.
+			- autoMode=True: Using PID, the arm will move to the position specified by `intake.manualSetIntakePosition()`.
+			- autoMode=False: The arm is controlled directly via an analog user input.
 		*/
 		if (controllerYellow.getRightBumperButtonPressed()) {
 			intake.swapPivotMode();
@@ -340,7 +317,7 @@ public class Robot extends TimedRobot {
 		}
 		else {
 			shooterIntake.set(ControlMode.PercentOutput, 0);
-			
+
 		}
 
 		if (controllerYellow.getLeftBumperButton()) {
@@ -434,7 +411,7 @@ public class Robot extends TimedRobot {
 	}
 
 	@Override
-  	public void disabledInit() {
+	public void disabledInit() {
 	}
 
 	@Override
@@ -443,7 +420,7 @@ public class Robot extends TimedRobot {
 	}
 
 	public void sonarTestPeriodic() {
-		/* 
+		/*
 		// ---------- Sonar (Unused) ---------- //
 		- Yes, I still hate sonar. (Michael Milward, 2026)
 
