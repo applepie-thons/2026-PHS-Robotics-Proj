@@ -260,6 +260,7 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putNumber("currClimbPosition", climb.getPosition().getValueAsDouble());
 
+		// old button-related turn_to_degree
 		/* 
 		if (controllerRed.getLeftBumperButton()) {
 			is_auto_turning = true;
@@ -273,7 +274,7 @@ public class Robot extends TimedRobot {
 			is_auto_turning = false;
 		}
 		*/
-
+		// should make robot turn to whatever angle is being pressed on the d-pad
 		if(!(controllerRed.getPOV() == -1)){
 			is_auto_turning = true;
 			swerve_drive.turn_to_degree(controllerRed.getPOV() - 180, 0.2);

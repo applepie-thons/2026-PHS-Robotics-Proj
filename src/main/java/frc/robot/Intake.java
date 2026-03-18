@@ -24,6 +24,7 @@ public class Intake
     enum IntakePosition {
         START(0),
         IN(-0.11),
+        PARTIAL(-0.25),
         OUT(-0.33);
 
         private double position;
