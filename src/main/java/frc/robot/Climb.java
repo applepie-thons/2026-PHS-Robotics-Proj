@@ -8,7 +8,6 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.ConfigConsts;
 
 public class Climb {
-
 	private TalonFX climbMotor;
 
 	private double minClimbPosition;
@@ -22,6 +21,9 @@ public class Climb {
 		// immediately (i.e., brake), rather than keeping momentum from previous movement.
 		// This important for preventing the rope from unwinding when extending.
 		this.climbMotor.setNeutralMode(NeutralModeValue.Brake);
+
+		this.minClimbPosition = 0;
+		this.maxClimbPosition = 69;
 	}
 
 	public boolean set(double retractInput, double extendInput, boolean ignoreLimits) {
@@ -49,5 +51,42 @@ public class Climb {
 
 	public void log() {
 		SmartDashboard.putNumber("currClimbPosition", climbMotor.getPosition().getValueAsDouble());
+	}
+}
+
+class ClimbExtendCmd extends CommandBase {
+	Climb climb;
+	// This constructor can be used to customize how we want this command to behave.
+	// A "move-to-distance" command for swerve could accept a distance and direction
+	// in its constructor, for example.
+	//
+	// The constructor for any command must also take in the object it wants to control
+	// (`Climb` in this case, `SwerveDrive` in the case of swerve auto), so that it can
+	// actually control it in `commandPeriodic()`.
+	public ClimbExtendCmd(Climb inClimb) {
+		this.climb = inClimb;
+	}
+
+	boolean commandPeriodic() {
+		double retractInput = 0;
+		double extendInput = 0.75;
+		boolean ignoreLimits = false;
+		return climb.set(retractInput, extendInput, ignoreLimits);
+	}
+}
+
+class ClimbRetractCmd extends CommandBase {
+	Climb climb;
+	public ClimbRetractCmd(Climb inClimb) {
+		this.climb = inClimb;
+	}
+
+	boolean commandPeriodic() {
+		// TODO: Maybe apply hysteresis here. Retracting with full force right away is a little
+		// scary, but we might need to eventually apply full force to lift the bot up.
+		double retractInput = 1;
+		double extendInput = 0;
+		boolean ignoreLimits = false;
+		return climb.set(retractInput, extendInput, ignoreLimits);
 	}
 }

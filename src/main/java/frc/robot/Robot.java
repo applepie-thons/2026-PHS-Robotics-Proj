@@ -4,23 +4,24 @@
 
 package frc.robot;
 
+import java.util.ArrayList;
+
 import com.ctre.phoenix.motorcontrol.ControlMode;
 import com.ctre.phoenix.motorcontrol.can.TalonSRX;
-
 //import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match; (might need later)
 import com.ctre.phoenix6.hardware.TalonFX;
+
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
+import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import edu.wpi.first.wpilibj.AnalogInput;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Servo;
-
 import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
@@ -31,15 +32,6 @@ public class Robot extends TimedRobot {
 		DEFAULT,
 		FAST,
 		EXTRA_FAST;
-	}
-
-	enum AutoState {
-		FACE_LEFT,
-		FACE_RIGHT,
-		FACE_FORWARD,
-		FACE_BACKWARD,
-		CLIMB_EXTEND,
-		CLIMB_RETRACT;
 	}
 
 	// ------ Game Controllers ------ //
@@ -90,6 +82,10 @@ public class Robot extends TimedRobot {
 	// Linear Actuator
 	Servo linearAcutator = new Servo(0);
 	private double servoLastUpdateTime = 0;
+
+	// Autonomous command sequence.
+	ArrayList<CommandBase> autoTestCmds;
+	private int currCmdIndex = 0;
 
 	public Robot() {
 		// TODO (Sahil): Check that is actually drops the camera's resolution.
@@ -344,7 +340,29 @@ public class Robot extends TimedRobot {
 	}
 
 	@Override
-	public void testInit() {}
+	public void testInit() {
+		autoTestCmds.add( new ClimbExtendCmd( climb ) );
+		autoTestCmds.add( new ClimbRetractCmd( climb ) );
+
+		CommandBase firstCmd = autoTestCmds.get( 0 );
+		firstCmd.commandInit();
+	}
+
+	public void testPeriodic2() {
+		if(currCmdIndex == autoTestCmds.size()) {
+			// We have iterated through all of the commands. There's nothing left to do,
+			// so return early.
+			return;
+		}
+		CommandBase currCmd = autoTestCmds.get( currCmdIndex );
+		boolean cmdFinished = currCmd.commandPeriodic();
+
+		if (cmdFinished) {
+			currCmdIndex += 1;
+			CommandBase nextCmd = autoTestCmds.get( currCmdIndex );
+			nextCmd.commandInit();
+		}
+	}
 
 	@Override
 	public void testPeriodic() {
