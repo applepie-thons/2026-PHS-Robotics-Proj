@@ -75,6 +75,18 @@ public class SwerveDrive {
 
 	public SwerveDriveOdometry odometry;
 
+	public SwerveModulePosition[] getModulePositions() {
+		// TODO: The ordering of the modules here is guessed based on how we need to pass
+		// swerve module states in `setModules()`. Confirm that this is correct.
+		SwerveModulePosition[] modulePositions = {
+			rfModule.getModulePosition(),
+			lfModule.getModulePosition(),
+			rbModule.getModulePosition(),
+			lbModule.getModulePosition()
+		};
+		return modulePositions;
+	}
+
 	public SwerveDrive() {
 		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block other initialization.
 		new Thread(() -> {
@@ -83,8 +95,10 @@ public class SwerveDrive {
 				navxMxp.reset();
 
 				// initialize after gyro is reset, because it needs the gyro position for initialization
-				//SwerveModulePosition[] module_positions = new SwerveModulePosition[] {new SwerveModulePosition(lfModule.getDrivePosition(), )}
-				//odometry = new SwerveDriveOdometry(new SwerveDriveKinematics(null), navxMxp.getRotation2d(), module_positions);
+				odometry = new SwerveDriveOdometry(
+					DriveConsts.driveKinematics,
+					navxMxp.getRotation2d(),
+					getModulePositions());
 
 			} catch (Exception e) {
 			}
@@ -109,6 +123,8 @@ public class SwerveDrive {
 		rfModule.setDesiredState(moduleStates[0], ignoreLowSpeed);
 		lbModule.setDesiredState(moduleStates[3], ignoreLowSpeed);
 		rbModule.setDesiredState(moduleStates[2], ignoreLowSpeed);
+
+		odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
 
 	public void setWheelsToAngle(double angleRadians) {
@@ -122,6 +138,8 @@ public class SwerveDrive {
 		rfModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 		lbModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 		rbModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
+
+		odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
 
 	public void stopModules() {
@@ -129,6 +147,8 @@ public class SwerveDrive {
 		rfModule.stop();
 		lbModule.stop();
 		rbModule.stop();
+
+		odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
 
 

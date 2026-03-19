@@ -6,6 +6,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.core.CoreCANcoder;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConsts;
@@ -77,9 +78,14 @@ public class SwerveModule {
 		return (this.reverseAbsoluteEncoder ? -angleRad : angleRad);
 	}
 
-	public SwerveModuleState getState() {
+	public SwerveModuleState getModuleState() {
 		return new SwerveModuleState(
 				getDriveVelocity(), new Rotation2d(getAbsoluteEncoderRad()));
+	}
+
+	public SwerveModulePosition getModulePosition() {
+		return new SwerveModulePosition(
+				getDrivePosition(), new Rotation2d(getAbsoluteEncoderRad()));
 	}
 
 	public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
@@ -90,7 +96,7 @@ public class SwerveModule {
 			return;
 		}
 
-		state.optimize(getState().angle);
+		state.optimize(getModuleState().angle);
 
 		double newSpeedMotorVal = state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
 		int speedReverse = reverseSpeedMotor ? -1 : 1;
