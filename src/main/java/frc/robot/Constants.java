@@ -49,7 +49,10 @@ public final class Constants {
 
 		/***************************** Shooter *****************************/
 		public static final int shooterInMotorId = 12;
+		// TODO: This can probably be removed, if we're not going to be using a
+		// TalonSRX for the upper launcher motor.
 		public static final int shooterOutMotorId = 13;
+		public static final int shooterOutKrakenMotorId = 27;
 
 		/***************************** Intake *****************************/
 		public static final int intakeWheelDriveMotorId = 14;

@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
+import frc.robot.Shooter.ShootingState;
 
 public class Robot extends TimedRobot {
 	enum SwerveSpeedMode {
@@ -38,8 +39,7 @@ public class Robot extends TimedRobot {
 	private final XboxController controllerRed = new XboxController(0);
 	private final XboxController controllerYellow = new XboxController(1);
 
-	private TalonSRX shooterIntake = new TalonSRX( ConfigConsts.shooterInMotorId );
-	private TalonFX shooterLaunch = new TalonFX(27);
+	private Shooter shooter = new Shooter();
 	private Intake intake = new Intake();
 	private Climb climb = new Climb();
 
@@ -142,11 +142,9 @@ public class Robot extends TimedRobot {
 		double elapsedTime = currentTime - auto_start_time;
 
 		if (elapsedTime < 0.25) {
-			shooterLaunch.set(-0.75);
-		}
-		else {
-			shooterIntake.set(ControlMode.PercentOutput, -1);
-			shooterLaunch.set(-0.75);
+			shooter.set( ShootingState.NOTHING, ShootingState.LAUNCH );
+		} else {
+			shooter.set( ShootingState.LAUNCH, ShootingState.LAUNCH );
 		}
 
 		servoPeriodic();
@@ -276,7 +274,7 @@ public class Robot extends TimedRobot {
 			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
 		else if(controllerYellow.getBackButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.IN);;
+			intake.manualSetIntakePosition(IntakePosition.IN);
 		}
 
 		/*	Toggle between the intake arm control modes. There are two different control modes, tracked by the boolean return by `intake.getAutoMode()`.
@@ -305,26 +303,21 @@ public class Robot extends TimedRobot {
 		}
 
 		// ------------------------------- Shooter ------------------------------- //
+		ShootingState shooterInState = ShootingState.NOTHING;
 		if (controllerYellow.getAButton()) {
-			shooterIntake.set(ControlMode.PercentOutput, -1);
-		}
-		else if (controllerYellow.getXButton()) {
-			shooterIntake.set(ControlMode.PercentOutput, 0.25);
-		}
-		else {
-			shooterIntake.set(ControlMode.PercentOutput, 0);
-
-		}
-
-		if (controllerYellow.getLeftBumperButton()) {
-			// Shoot
-			shooterLaunch.set(-0.75);
+			shooterInState = ShootingState.LAUNCH;
 		} else if (controllerYellow.getXButton()) {
-			// Unshoot
-			shooterLaunch.set(0.75);
-		} else {
-			shooterLaunch.set(0);
+			shooterInState = ShootingState.UNLAUNCH;
 		}
+
+		ShootingState shooterOutState = ShootingState.NOTHING;
+		if (controllerYellow.getLeftBumperButton()) {
+			shooterOutState = ShootingState.LAUNCH;
+		} else if (controllerYellow.getXButton()) {
+			shooterOutState = ShootingState.UNLAUNCH;
+		}
+
+		shooter.set(shooterInState, shooterOutState);
 	}
 
 	@Override
