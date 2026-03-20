@@ -68,6 +68,9 @@ public class Robot extends TimedRobot {
 	// ------ Camera ------ //
 	private final UsbCamera camera;
 
+	// ------ Shooter ----- //
+	double time_at_press = 0.0;
+
 	// Linear Actuator
 	Servo linearAcutator = new Servo(0);
 	private double servoLastUpdateTime = 0;
@@ -137,32 +140,6 @@ public class Robot extends TimedRobot {
 		}
 
 		servoPeriodic();
-
-		// --- a way to use the move meters function in auto (since its kind of confusing and bad) --------------------- //
-		/*
-		int current_auto_step = 1;
-		boolean first_call = true;
-		// ^^ both go in constructor ^^
-		if(current_auto_step == 1){
-			if(swerve_drive.move_meters_in_direction(2, 1, 0, first_call)){
-				current_auto_step += 1;
-				first_call = true;
-			}else{
-				first_call = false;
-			}
-
-		}
-		else if(current_auto_step == 2){
-			if(swerve_drive.move_meters_in_direction(2, -1, 0, first_call)){
-				current_auto_step += 1;
-				first_call = true;
-			}else{
-				first_call = false;
-			}
-		}
-
-		// with this, the robot will (hopefully) move forward 2 meters then back 2 meters
-		*/
 
 	}
 
@@ -299,6 +276,9 @@ public class Robot extends TimedRobot {
 
 		// ------------------------------- Shooter ------------------------------- //
 		ShootingState shooterInState = ShootingState.NOTHING;
+		ShootingState shooterOutState = ShootingState.NOTHING;
+		
+		/*
 		if (controllerYellow.getAButton()) {
 			shooterInState = ShootingState.LAUNCH;
 		} else if (controllerYellow.getXButton()) {
@@ -310,6 +290,30 @@ public class Robot extends TimedRobot {
 			shooterOutState = ShootingState.LAUNCH;
 		} else if (controllerYellow.getXButton()) {
 			shooterOutState = ShootingState.UNLAUNCH;
+		}
+		*/
+		
+		// this section should start and stop the motor with a single button press (not holding) 
+		// and start the motor with a delay on the inside one
+
+		double currentTime = Timer.getFPGATimestamp();
+
+		if(controllerYellow.getXButtonPressed()) {
+			if(shooterInState == ShootingState.LAUNCH) {
+				shooterInState = ShootingState.UNLAUNCH;
+				shooterOutState = ShootingState.UNLAUNCH;
+			}
+			else{
+				shooterOutState = ShootingState.LAUNCH;
+				time_at_press = currentTime;
+			}
+		}
+
+		double elapsedTime = currentTime - time_at_press;
+
+		// the 0.25 is the delay before the inside motor starts
+		if(elapsedTime > 0.25 && shooterOutState == ShootingState.LAUNCH) {
+			shooterInState = ShootingState.LAUNCH;
 		}
 
 		shooter.set(shooterInState, shooterOutState);
@@ -329,14 +333,60 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testInit() {
+		// cleaning up to make it easieir to move to autonomousPeriodic
+		initCommands(new ClimbExtendCmd( climb ), new ClimbRetractCmd( climb ));
+
+		/*
 		autoTestCmds.add( new ClimbExtendCmd( climb ) );
 		autoTestCmds.add( new ClimbRetractCmd( climb ) );
 
 		CommandBase firstCmd = autoTestCmds.get( 0 );
 		firstCmd.commandInit();
+		*/
 	}
 
 	public void testPeriodic2() {
+		// cleaning up to make it easier to move this to autonomousPeriodic
+		runCommands();
+
+		/*
+		if(currCmdIndex == autoTestCmds.size()) {
+			// We have iterated through all of the commands. There's nothing left to do,
+			// so return early.
+			return;
+		}
+		CommandBase currCmd = autoTestCmds.get( currCmdIndex );
+		boolean cmdFinished = currCmd.commandPeriodic();
+
+		if (cmdFinished) {
+			currCmdIndex += 1;
+			CommandBase nextCmd = autoTestCmds.get( currCmdIndex );
+			nextCmd.commandInit();
+		}
+		*/
+		
+	}
+
+	/**
+	 * resets command array to the ones listed in the function parameter. Also use this for initialization.
+	 * (this is just to clean up the code so theres not just a bunch of array.add everywhere)
+	 */
+	public void initCommands(CommandBase... commands) {
+		// clears array and adds the function parameters to the array
+		autoTestCmds.clear();
+		for(int i = 0; i < commands.length; i++) {
+			autoTestCmds.add(commands[i]);
+		}
+
+		// Sahil's code unchanged
+		CommandBase firstCmd = autoTestCmds.get( 0 );
+		firstCmd.commandInit();
+	}
+
+	/**use this in the autoPeriodic function to run the commands*/
+	public void runCommands() {
+		//Sahil's code unchanged
+
 		if(currCmdIndex == autoTestCmds.size()) {
 			// We have iterated through all of the commands. There's nothing left to do,
 			// so return early.

@@ -166,37 +166,6 @@ public class SwerveDrive {
 	}
 
 
-	/**
-	 * moves the robot the specified distance with a direction that is a vector(if needed, convert a degree to a vector)
-	 * @param first_call : if this is the first time the function was called in the current request (not just at robot initialization)
-	 * @return if at specified distance
-	 */
-	public boolean move_meters_in_direction(double meters, double Xdirection, double Ydirection, boolean first_call){
-
-		double avg_dist = GetAvgModuleDist();
-		// gets the starting position to subtract from position because we only need the relative position
-		if(first_call){
-			initial_module_dist = avg_dist;
-		}
-		double current_dist = avg_dist - initial_module_dist;
-
-		double pid_result = move_pid.calculate(current_dist, meters);
-
-		// smartdashboard things
-		SmartDashboard.putNumber("average module distance", avg_dist);
-		SmartDashboard.putNumber("move pid result", pid_result);
-		SmartDashboard.putNumber("move pid error", move_pid.getError());
-
-		if(!move_pid.atSetpoint()){
-			setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
-			return(false);
-		}
-		else{
-			setModules(0, 0, 0);
-			return(true);
-		}
-
-	}
 
 	public boolean turn_to_degree(double degree, double errorTolerance) {
 		double current_degree = -navxMxp.getRotation2d().getRadians();
@@ -225,18 +194,6 @@ public class SwerveDrive {
 
 	// ------- Helper functions/variables for debugging ------- //
 
-	/**
-	 * @return average module distance that is positive, regardless of original sign.
-	 */
-	public double GetAvgModuleDist(){
-		double lfdist = Math.abs(lfModule.getDrivePosition());
-		double lbdist = Math.abs(lbModule.getDrivePosition());
-		double rfdist = Math.abs(rfModule.getDrivePosition());
-		double rbdist = Math.abs(rbModule.getDrivePosition());
-
-		return((lfdist + lbdist + rfdist + rbdist) / 4);
-	}
-
 
 	public void setModuleDirect(String moduleId, double speedMotorInput, double directionMotorInput) {
 		switch(moduleId) {
@@ -264,5 +221,71 @@ public class SwerveDrive {
 		rfModule.log();
 		lbModule.log();
 		rbModule.log();
+	}
+
+	// -------- Commands -------- //
+
+	public class MoveToCmd {
+
+		SwerveDrive swerveDrive;
+		double start_dist = 0.0;
+		double meters = 0.0;
+		double Xdirection = 0.0;
+		double Ydirection = 0.0;
+
+		public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
+			this.swerveDrive = swerve_drive;
+			this.meters = Meters;
+			this.Xdirection = X_direction;
+			this.Ydirection = Y_direction;
+		}
+
+
+		public void commandInit() {
+			start_dist = lfModule.getDrivePosition();
+		}
+
+		public boolean commandPeriodic() {
+
+			double lf_dist = lfModule.getDrivePosition();
+
+			double current_dist = lf_dist - start_dist;
+
+			double pid_result = move_pid.calculate(current_dist, meters);
+
+			// smartdashboard things
+			SmartDashboard.putNumber("lf module distance", lf_dist);
+			SmartDashboard.putNumber("move pid result", pid_result);
+			SmartDashboard.putNumber("move pid error", move_pid.getError());
+
+			if(!move_pid.atSetpoint()){
+				setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
+				return(false);
+			}
+			else{
+				setModules(0, 0, 0);
+				return(true);
+			}
+
+		}
+
+	}
+
+
+	public class TurnToCmd {
+		SwerveDrive swerve_drive;
+		double target_degree;
+		double error_tolerance;
+
+		public TurnToCmd(SwerveDrive swerveDrive, double targetDegree, double errorTolerance){
+			this.swerve_drive = swerveDrive;
+			this.target_degree = targetDegree;
+			this.error_tolerance = errorTolerance;
+		}
+
+		public boolean commandPeriodic() {
+			return(turn_to_degree(target_degree, error_tolerance));
+		}
+
 	}
 }
