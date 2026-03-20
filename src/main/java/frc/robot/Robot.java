@@ -6,11 +6,7 @@ package frc.robot;
 
 import java.util.ArrayList;
 
-import com.ctre.phoenix.motorcontrol.ControlMode;
-import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 //import com.fasterxml.jackson.databind.deser.DataFormatReaders.Match; (might need later)
-import com.ctre.phoenix6.hardware.TalonFX;
-
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
@@ -22,7 +18,6 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
 import frc.robot.Shooter.ShootingState;
@@ -52,21 +47,15 @@ public class Robot extends TimedRobot {
 	//private int currModuleStrIndex = 0;
 	//private String moduleStrs[] = { "lf", "rf", "lb", "rb" };
 
-	// ----- Deadzone + Hysteresis (Disabled) ----- //
+	// ----- Deadzone ----- //
 	// hysteresis currently disabled because josh likes max speed better
 	// to enable, multiply motor output by hysteresis_mult
 	//private double deadzone = 0.2;
-	private double last_update_stickMagnitude = 0.0; // magnitude of the joystick on last update
-	private double diff_threshold = 0.1; // how fast to pull the joystick to trigger hysteresis
-	private double increase_speed = 5.5; // how fast the speed increases during hysteresis
-	private double hysteresis_mult = 1.0; // the multiplier for the speed to make hysteresis work
 
 	// ---- Turn to Degree ---- //
 	private boolean is_auto_turning = false;
 
 	// ---- deltaTime ----//
-	private double last_update_timer = 0.0;
-	private double deltaTime = 0.0;
 	private double auto_start_time = 0;
 
 	// ------ Gyro ------ //
@@ -215,6 +204,12 @@ public class Robot extends TimedRobot {
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / speedThrottle);
+
+		// TODO: See if squaring the input makes controlling feel better.
+		// xSpeed = Math.pow(xSpeed, 2) * Math.signum(xSpeed);
+		// ySpeed = Math.pow(ySpeed, 2) * Math.signum(ySpeed);
+		// rotSpeed = Math.pow(rotSpeed, 2) * Math.signum(rotSpeed);
+
 		if(!is_auto_turning){
 			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
 		}
@@ -359,12 +354,6 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testPeriodic() {
-		// calculate deltaTime
-		double currentTime = Timer.getFPGATimestamp();
-		deltaTime = currentTime - last_update_timer;
-		SmartDashboard.putNumber("delta_time", deltaTime);
-		SmartDashboard.putNumber("gyro_degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
-
 		// Divide by 5 to limit speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -385,40 +374,13 @@ public class Robot extends TimedRobot {
 		}
 		else is_auto_turning = false;
 
-		// ------------ old hysteresis + deadzone that we did a while ago with swerve ---------- //
-		// ---------- not active currently dont expect it to do anything ---------- //
-
-		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
-
 		/*
 		// commented out because this deadzone will only work for swerve drive and cause problems for tank
+		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
 		if(deadzone > joystickMagnitude){
 			throttle = 0.0;
 		}
 		*/
-
-		// calculate joystick speed
-		double joystick_diff = Math.abs(joystickMagnitude - last_update_stickMagnitude);
-
-
-		if (joystick_diff > diff_threshold) {
-			hysteresis_mult = 0.0;
-		}
-
-		if (hysteresis_mult < 1.0) {
-			calculate_hysteresis();
-		} else {
-			hysteresis_mult = 1.0;
-		}
-
-		// keep at bottom so it only updates at the end and is usable in entire function
-		last_update_stickMagnitude = joystickMagnitude;
-		last_update_timer = Timer.getFPGATimestamp();
-	}
-
-	private void calculate_hysteresis() {
-		hysteresis_mult += increase_speed * deltaTime;
-		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
 	}
 
 	@Override

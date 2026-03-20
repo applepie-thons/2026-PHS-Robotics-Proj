@@ -98,6 +98,11 @@ public class SwerveModule {
 
 		state.optimize(getModuleState().angle);
 
+		// TODO: The SwerveDriveKinematics page of WPILib says that this improves the "skew"
+		// of swerve drive when changing direction. It does this by reducing the speed of
+		// a module when it's not pointing in the desired direction. Test this.
+		// state.speedMetersPerSecond *= state.angle.minus(getState().angle).getCos();
+
 		double newSpeedMotorVal = state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
 		int speedReverse = reverseSpeedMotor ? -1 : 1;
 		speedMotor.set(newSpeedMotorVal * speedReverse);

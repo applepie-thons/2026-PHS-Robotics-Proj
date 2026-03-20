@@ -4,6 +4,7 @@ package frc.robot;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.ConfigConsts;
 
@@ -67,7 +68,7 @@ class ClimbExtendCmd extends CommandBase {
 		this.climb = inClimb;
 	}
 
-	boolean commandPeriodic() {
+	public boolean commandPeriodic() {
 		double retractInput = 0;
 		double extendInput = 0.75;
 		boolean ignoreLimits = false;
@@ -77,15 +78,28 @@ class ClimbExtendCmd extends CommandBase {
 
 class ClimbRetractCmd extends CommandBase {
 	Climb climb;
+	double startTime;
 	public ClimbRetractCmd(Climb inClimb) {
 		this.climb = inClimb;
 	}
 
-	boolean commandPeriodic() {
+	public void commandInit() {
+		this.startTime = Timer.getFPGATimestamp();
+	}
+
+	public boolean commandPeriodic() {
 		// TODO: Maybe apply hysteresis here. Retracting with full force right away is a little
 		// scary, but we might need to eventually apply full force to lift the bot up.
+
+		double elapsedTime = Timer.getFPGATimestamp() - startTime;
+		if (elapsedTime > 5) {
+			// Stop attempting to climb after 5 seconds to avoid stressing the motor too much.
+			// The 1-to-1 brake gearbox prevents us from slipping down anyways.
+			return true;
+		}
 		double retractInput = 1;
 		double extendInput = 0;
+
 		boolean ignoreLimits = false;
 		return climb.set(retractInput, extendInput, ignoreLimits);
 	}

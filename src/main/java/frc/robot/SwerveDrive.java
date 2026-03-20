@@ -75,6 +75,15 @@ public class SwerveDrive {
 
 	public SwerveDriveOdometry odometry;
 
+	/*
+	private Hysteresis2 xHysteresis = new Hysteresis2(
+		1, DriveConsts.maxMetersPerSecToMotorSpeed / 1.8);
+	private Hysteresis2 yHysteresis = new Hysteresis2(
+		1, DriveConsts.maxMetersPerSecToMotorSpeed / 1.8);
+	private Hysteresis2 rotHysteresis = new Hysteresis2(
+		1, DriveConsts.maxRadPerSecToMotorSpeed / 1.8);
+	*/
+
 	public SwerveModulePosition[] getModulePositions() {
 		// TODO: The ordering of the modules here is guessed based on how we need to pass
 		// swerve module states in `setModules()`. Confirm that this is correct.
@@ -110,6 +119,11 @@ public class SwerveDrive {
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
+		// TODO: See if these improve the feel of driving.
+		// xSpeed = xHysteresis.nextValue(xSpeed);
+		// ySpeed = yHysteresis.nextValue(ySpeed);
+		// turnSpeed = rotHysteresis.nextValue(turnSpeed);
+
 		// TODO: Check that "getRotation2d()" returns an angle in radians, and that it is CCW positive.
 		ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
 				xSpeed, ySpeed, turnSpeed, navxMxp.getRotation2d());
@@ -158,14 +172,14 @@ public class SwerveDrive {
 	 * @return if at specified distance
 	 */
 	public boolean move_meters_in_direction(double meters, double Xdirection, double Ydirection, boolean first_call){
-		
+
 		double avg_dist = GetAvgModuleDist();
 		// gets the starting position to subtract from position because we only need the relative position
 		if(first_call){
 			initial_module_dist = avg_dist;
 		}
 		double current_dist = avg_dist - initial_module_dist;
-	
+
 		double pid_result = move_pid.calculate(current_dist, meters);
 
 		// smartdashboard things

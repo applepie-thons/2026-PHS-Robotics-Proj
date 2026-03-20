@@ -98,8 +98,6 @@ public final class Constants {
 		// motor's speed.
 		public static final double maxMetersPerSecToMotorSpeed = 5;
 
-		// TODO: This value's been copy+pasted from the reference project. Need to fine
-		// tune this.
 		public static final double maxRadPerSecToMotorSpeed = 2 * 2 * Math.PI;
 	}
 }
