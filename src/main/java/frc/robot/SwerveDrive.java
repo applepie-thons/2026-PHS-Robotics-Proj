@@ -24,14 +24,13 @@ public class SwerveDrive {
 
 	// --- For move meters function --- //
 	private double initial_module_dist = 0.0;
-	private PIDController move_pid = new PIDController(0.6, 0, 0);
 
 	// Shortened names for convenience:
 	// * lf: left-front
 	// * rf: right-front
 	// * lb: left-back
 	// * rb: right-back
-	private final SwerveModule lfModule = new SwerveModule(
+	public final SwerveModule lfModule = new SwerveModule(
 			"lf",
 			ConfigConsts.lfSpeedMotorId,
 			ConfigConsts.lfDirectionMotorId,
@@ -41,7 +40,7 @@ public class SwerveDrive {
 			ConfigConsts.reverseLfEncoder,
 			ConfigConsts.reverseLfSpeedEncoder);
 
-	private final SwerveModule rfModule = new SwerveModule(
+	public final SwerveModule rfModule = new SwerveModule(
 			"rf",
 			ConfigConsts.rfSpeedMotorId,
 			ConfigConsts.rfDirectionMotorId,
@@ -51,7 +50,7 @@ public class SwerveDrive {
 			ConfigConsts.reverseRfEncoder,
 			ConfigConsts.reverseRfSpeedEncoder);
 
-	private final SwerveModule lbModule = new SwerveModule(
+	public final SwerveModule lbModule = new SwerveModule(
 			"lb",
 			ConfigConsts.lbSpeedMotorId,
 			ConfigConsts.lbDirectionMotorId,
@@ -61,7 +60,7 @@ public class SwerveDrive {
 			ConfigConsts.reverseLbEncoder,
 			ConfigConsts.reverseLbSpeedEncoder);
 
-	private final SwerveModule rbModule = new SwerveModule(
+	public final SwerveModule rbModule = new SwerveModule(
 			"rb",
 			ConfigConsts.rbSpeedMotorId,
 			ConfigConsts.rbDirectionMotorId,
@@ -115,7 +114,7 @@ public class SwerveDrive {
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid.setTolerance(0.035);
 
-		move_pid.setTolerance(0.2);
+
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
@@ -222,70 +221,67 @@ public class SwerveDrive {
 		lbModule.log();
 		rbModule.log();
 	}
+}
 
-	// -------- Commands -------- //
+// -------- Commands -------- //
+class MoveToCmd extends CommandBase {
+	SwerveDrive swerve_drive;
+	double start_dist = 0.0;
+	double meters = 0.0;
+	double Xdirection = 0.0;
+	double Ydirection = 0.0;
+	private PIDController move_pid = new PIDController(0.6, 0, 0);
 
-	public class MoveToCmd {
-
-		SwerveDrive swerveDrive;
-		double start_dist = 0.0;
-		double meters = 0.0;
-		double Xdirection = 0.0;
-		double Ydirection = 0.0;
-
-		public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
-			this.swerveDrive = swerve_drive;
-			this.meters = Meters;
-			this.Xdirection = X_direction;
-			this.Ydirection = Y_direction;
-		}
-
-
-		public void commandInit() {
-			start_dist = lfModule.getDrivePosition();
-		}
-
-		public boolean commandPeriodic() {
-
-			double lf_dist = lfModule.getDrivePosition();
-
-			double current_dist = lf_dist - start_dist;
-
-			double pid_result = move_pid.calculate(current_dist, meters);
-
-			// smartdashboard things
-			SmartDashboard.putNumber("lf module distance", lf_dist);
-			SmartDashboard.putNumber("move pid result", pid_result);
-			SmartDashboard.putNumber("move pid error", move_pid.getError());
-
-			if(!move_pid.atSetpoint()){
-				setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
-				return(false);
-			}
-			else{
-				setModules(0, 0, 0);
-				return(true);
-			}
-
-		}
-
+	public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
+		this.swerve_drive = swerve_drive;
+		this.meters = Meters;
+		this.Xdirection = X_direction;
+		this.Ydirection = Y_direction;
+		move_pid.setTolerance(0.2);
 	}
 
 
-	public class TurnToCmd {
-		SwerveDrive swerve_drive;
-		double target_degree;
-		double error_tolerance;
-
-		public TurnToCmd(SwerveDrive swerveDrive, double targetDegree, double errorTolerance){
-			this.swerve_drive = swerveDrive;
-			this.target_degree = targetDegree;
-			this.error_tolerance = errorTolerance;
-		}
-
-		public boolean commandPeriodic() {
-			return(turn_to_degree(target_degree, error_tolerance));
-		}
-
+	public void commandInit() {
+		start_dist = swerve_drive.lfModule.getDrivePosition();
 	}
+
+	public boolean commandPeriodic() {
+
+		double lf_dist = swerve_drive.lfModule.getDrivePosition();
+
+		double current_dist = lf_dist - start_dist;
+
+		double pid_result = move_pid.calculate(current_dist, meters);
+
+		// smartdashboard things
+		SmartDashboard.putNumber("lf module distance", lf_dist);
+		SmartDashboard.putNumber("move pid result", pid_result);
+		SmartDashboard.putNumber("move pid error", move_pid.getError());
+
+		if(!move_pid.atSetpoint()){
+			swerve_drive.setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
+			return(false);
+		}
+		else{
+			swerve_drive.setModules(0, 0, 0);
+			return(true);
+		}
+	}
+}
+
+class TurnToCmd extends CommandBase {
+	SwerveDrive swerve_drive;
+	double target_degree;
+	double error_tolerance;
+
+	public TurnToCmd(SwerveDrive swerve_drive, double targetDegree, double errorTolerance){
+		this.swerve_drive = swerve_drive;
+		this.target_degree = targetDegree;
+		this.error_tolerance = errorTolerance;
+	}
+
+	public boolean commandPeriodic() {
+		return(swerve_drive.turn_to_degree(target_degree, error_tolerance));
+	}
+
 }
