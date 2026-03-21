@@ -127,6 +127,9 @@ public class Intake
 
     public void intakePeriodic(double pivotSpeed) {
         wheelDrive.set(intakeSpeed);
+        if (intakeSpeed > 0) {
+            setIntakePosition(-0.25);
+        }
         setIntakePosition(pivotSpeed);
         logIntake();
     }

@@ -68,9 +68,6 @@ public class Robot extends TimedRobot {
 	// ------ Camera ------ //
 	private final UsbCamera camera;
 
-	// ------ Shooter ----- //
-	double time_at_press = 0.0;
-
 	// Linear Actuator
 	Servo linearAcutator = new Servo(0);
 	private double servoLastUpdateTime = 0;
@@ -125,6 +122,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		auto_start_time = Timer.getFPGATimestamp();
+		shooter.setShootingState(ShootingState.LAUNCH);
 		linearAcutator.set(0);
 	}
 
@@ -132,15 +130,8 @@ public class Robot extends TimedRobot {
 	public void autonomousPeriodic() {
 		double currentTime = Timer.getFPGATimestamp();
 		double elapsedTime = currentTime - auto_start_time;
-
-		if (elapsedTime < 0.25) {
-			shooter.set( ShootingState.NOTHING, ShootingState.LAUNCH );
-		} else {
-			shooter.set( ShootingState.LAUNCH, ShootingState.LAUNCH );
-		}
-
+		shooter.periodic();
 		servoPeriodic();
-
 	}
 
 	public void redControllerPeriodic() {
@@ -275,53 +266,20 @@ public class Robot extends TimedRobot {
 		}
 
 		// ------------------------------- Shooter ------------------------------- //
-		ShootingState shooterInState = ShootingState.NOTHING;
-		ShootingState shooterOutState = ShootingState.NOTHING;
-		
-		/*
-		if (controllerYellow.getAButton()) {
-			shooterInState = ShootingState.LAUNCH;
-		} else if (controllerYellow.getXButton()) {
-			shooterInState = ShootingState.UNLAUNCH;
+		if(controllerYellow.getAButton()) {
+			shooter.setShootingState(ShootingState.LAUNCH);
+		} else if(controllerYellow.getXButton()) {
+			shooter.setShootingState(ShootingState.UNLAUNCH);
+		} else {
+			shooter.setShootingState(ShootingState.NOTHING);
 		}
-
-		ShootingState shooterOutState = ShootingState.NOTHING;
-		if (controllerYellow.getLeftBumperButton()) {
-			shooterOutState = ShootingState.LAUNCH;
-		} else if (controllerYellow.getXButton()) {
-			shooterOutState = ShootingState.UNLAUNCH;
-		}
-		*/
-		
-		// this section should start and stop the motor with a single button press (not holding) 
-		// and start the motor with a delay on the inside one
-
-		double currentTime = Timer.getFPGATimestamp();
-
-		if(controllerYellow.getXButtonPressed()) {
-			if(shooterInState == ShootingState.LAUNCH) {
-				shooterInState = ShootingState.UNLAUNCH;
-				shooterOutState = ShootingState.UNLAUNCH;
-			}
-			else{
-				shooterOutState = ShootingState.LAUNCH;
-				time_at_press = currentTime;
-			}
-		}
-
-		double elapsedTime = currentTime - time_at_press;
-
-		// the 0.25 is the delay before the inside motor starts
-		if(elapsedTime > 0.25 && shooterOutState == ShootingState.LAUNCH) {
-			shooterInState = ShootingState.LAUNCH;
-		}
-
-		shooter.set(shooterInState, shooterOutState);
+		shooter.periodic();
 	}
 
 	@Override
 	public void teleopInit() {
 		linearAcutator.set(0);
+		shooter.setShootingState(ShootingState.NOTHING);
 	}
 
 	@Override
@@ -364,7 +322,7 @@ public class Robot extends TimedRobot {
 			nextCmd.commandInit();
 		}
 		*/
-		
+
 	}
 
 	/**
@@ -431,6 +389,10 @@ public class Robot extends TimedRobot {
 			throttle = 0.0;
 		}
 		*/
+	}
+
+	public double inches_to_meters(double inches){
+		return(inches * 0.0254);
 	}
 
 	@Override
