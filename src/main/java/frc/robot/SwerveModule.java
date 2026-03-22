@@ -2,8 +2,11 @@
 
 package frc.robot;
 
+import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.core.CoreCANcoder;
+import com.ctre.phoenix6.signals.NeutralModeValue;
+
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
@@ -14,7 +17,7 @@ import frc.robot.Constants.ModuleConsts;
 
 public class SwerveModule {
 	private final TalonFX speedMotor;
-	private final TalonFX directionMotor;
+	public final TalonFX directionMotor;
 	// Tracks the current angle of motor. This retains its values over a powercycle,
 	// unlike the TalonFX's builtin encoder.
 	private final CoreCANcoder absoluteEncoder;
@@ -25,6 +28,7 @@ public class SwerveModule {
 	private final boolean reverseSpeedEncoder;
 
 	private final PIDController directionController;
+	private TalonFXConfiguration currentLimitConfig = new TalonFXConfiguration();
 
 	// Used to tell modules apart in SmartDashboard logging.
 	String moduleName;
@@ -36,6 +40,9 @@ public class SwerveModule {
 		this.speedMotor = new TalonFX(speedMotorId);
 		this.directionMotor = new TalonFX(directionMotorId);
 		this.absoluteEncoder = new CoreCANcoder(absoluteEncoderId);
+
+		this.speedMotor.setNeutralMode(NeutralModeValue.Brake);
+		this.directionMotor.setNeutralMode(NeutralModeValue.Brake);
 
 		this.reverseSpeedMotor = reverseSpeedMotor;
 		this.reverseDirectionMotor = reverseDirectionMotor;
@@ -49,6 +56,16 @@ public class SwerveModule {
 
 		// Reset the speedMotor's encoder.
 		this.speedMotor.setPosition(0);
+
+		
+		currentLimitConfig.CurrentLimits.StatorCurrentLimit = 100;
+		currentLimitConfig.CurrentLimits.StatorCurrentLimitEnable = true;
+		
+		for (int i = 0; i < 5; i++) {
+			speedMotor.getConfigurator().apply(currentLimitConfig);
+			directionMotor.getConfigurator().apply(currentLimitConfig);
+		}
+		
 	}
 
 	public double getDrivePosition() {
@@ -91,7 +108,10 @@ public class SwerveModule {
 	public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
 		// This "if" condition prevents the wheels from swinging back to their
 		// neutral position when the joysticks are let go.
-		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.005) {
+
+		SmartDashboard.putNumber(moduleName + " speedMps", state.speedMetersPerSecond);
+
+		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.02) {
 			stop();
 			return;
 		}

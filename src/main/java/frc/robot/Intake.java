@@ -23,7 +23,7 @@ public class Intake
     //TODO get real values for in and out positions
     enum IntakePosition {
         START(0),
-        IN(-0.11),
+        IN(0.25),
         PARTIAL(-0.25),
         OUT(-0.33);
 
@@ -42,7 +42,7 @@ public class Intake
     private boolean autoMode = false;
     private double intakeSpeed = 0;
 
-    private TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
+    public TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
 
 
@@ -54,11 +54,11 @@ public class Intake
         this.pivot2.setPosition(0);
 
         //pid cofiguration for pivot1
-        pivotConfig1.Slot0.kP = 8; //needs to be redone 3rd
-        pivotConfig1.Slot0.kI = 0; //do this last
-        pivotConfig1.Slot0.kD = 1.65; //needs to be set 4th
-        pivotConfig1.Slot0.kG = 0.5; //needs to be redone 1st
-        pivotConfig1.Slot0.kS = 0; //needs to be set 2nd
+        pivotConfig1.Slot0.kP = 1.8; //needs to be redone 3rd - 8
+        pivotConfig1.Slot0.kI = 0.5; //do this last - 0
+        pivotConfig1.Slot0.kD = 0.25; //needs to be set 4th - 1.65
+        pivotConfig1.Slot0.kG = 0.5; //needs to be redone 1st - 0.5
+        pivotConfig1.Slot0.kS = 0; //needs to be set 2nd - 0
         pivotConfig1.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
         //editing sensor data for calculations
@@ -72,8 +72,8 @@ public class Intake
         //setting positioning limits
         pivotConfig1.SoftwareLimitSwitch.ForwardSoftLimitThreshold = IntakePosition.IN.position;
         pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitThreshold = IntakePosition.OUT.position;
-        pivotConfig1.SoftwareLimitSwitch.ForwardSoftLimitEnable = true;
-        pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitEnable = true;
+        pivotConfig1.SoftwareLimitSwitch.ForwardSoftLimitEnable = false;
+        pivotConfig1.SoftwareLimitSwitch.ReverseSoftLimitEnable = false;
 
         //applying configuration
         StatusCode configStatus = StatusCode.StatusCodeNotInitialized;
@@ -90,6 +90,11 @@ public class Intake
 
         this.pivot2.setControl(new Follower( ConfigConsts.intakePivot1MotorId,
 											 MotorAlignmentValue.Opposed));
+    }
+
+    public void addTok(double newk) {
+        pivotConfig1.Slot0.kD += newk;
+        pivot1.getConfigurator().apply(pivotConfig1);
     }
 
     public boolean getAutoMode() {
@@ -143,7 +148,7 @@ public class Intake
         SmartDashboard.putNumber("intake piv 2 power", pivot2.get());
         SmartDashboard.putNumber("intake piv 1 power", pivot1.get());
         SmartDashboard.putNumber("Intake velocity", pivot1.getVelocity().getValueAsDouble());
-        SmartDashboard.putNumber("Intake Error", intakeLocation.position - pivot1.getPosition().getValueAsDouble());
+        SmartDashboard.putNumber("Intake Error", 360 * (intakeLocation.position - pivot1.getPosition().getValueAsDouble()));
     }
 }
 

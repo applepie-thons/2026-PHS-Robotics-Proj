@@ -19,8 +19,12 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
-	private PIDController turn_pid = new PIDController(1.8, 0, 0);
+	// kP = 2.8
+	// kI = 5.0
 
+	public double kP = 5.0;
+	private PIDController turn_pid = new PIDController(2.8, 5.0, 0);
+	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
 
 	// --- For move meters function --- //
 	private double initial_module_dist = 0.0;
@@ -95,7 +99,7 @@ public class SwerveDrive {
 		return modulePositions;
 	}
 
-	public SwerveDrive() {
+	public void resetGyro() {
 		// Calibrate the the NavXMXP in a separate thread, so that it doesn't block other initialization.
 		new Thread(() -> {
 			try {
@@ -111,10 +115,19 @@ public class SwerveDrive {
 			} catch (Exception e) {
 			}
 		}).start();
+	}
+
+	public SwerveDrive() {
+		resetGyro();
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid.setTolerance(0.035);
+		turn_pid.setIZone(deg_to_rad(15));
+		move_pid.setIZone(0.2);
+	}
 
-
+	public void setKP(double newKP) {
+		kP = newKP;
+		move_pid.setI(kP);
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
@@ -230,36 +243,39 @@ class MoveToCmd extends CommandBase {
 	double meters = 0.0;
 	double Xdirection = 0.0;
 	double Ydirection = 0.0;
-	private PIDController move_pid = new PIDController(0.6, 0, 0);
 
 	public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
 		this.swerve_drive = swerve_drive;
 		this.meters = Meters;
 		this.Xdirection = X_direction;
 		this.Ydirection = Y_direction;
-		move_pid.setTolerance(0.2);
+		swerve_drive.move_pid.setTolerance(0.01);
 	}
 
 
 	public void commandInit() {
-		start_dist = swerve_drive.lfModule.getDrivePosition();
+		start_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
 	}
 
 	public boolean commandPeriodic() {
 
-		double lf_dist = swerve_drive.lfModule.getDrivePosition();
+		double lf_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
 
 		double current_dist = lf_dist - start_dist;
 
-		double pid_result = move_pid.calculate(current_dist, meters);
+		double pid_result = swerve_drive.move_pid.calculate(Math.abs(current_dist), meters);
 
 		// smartdashboard things
 		SmartDashboard.putNumber("lf module distance", lf_dist);
+		SmartDashboard.putNumber("current dist", current_dist);
 		SmartDashboard.putNumber("move pid result", pid_result);
-		SmartDashboard.putNumber("move pid error", move_pid.getError());
+		SmartDashboard.putNumber("move pid error", swerve_drive.move_pid.getError());
 
-		if(!move_pid.atSetpoint()){
-			swerve_drive.setModules(pid_result * Xdirection, pid_result * Ydirection, 0.0);
+		// TODO: handle negative
+		pid_result = (pid_result > 2.5) ? 2.5 : pid_result;
+
+		if(!swerve_drive.move_pid.atSetpoint()){
+			swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, 0.0);
 			return(false);
 		}
 		else{

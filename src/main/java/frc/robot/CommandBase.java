@@ -3,7 +3,7 @@
 package frc.robot;
 
 abstract public class CommandBase {
-	/*
+	/**
 	 * Override this function to prepare any state that needs be set just as the command
 	 * is about to run. For example, with a command for driving to a particualar distance,
 	 * this function should snapshot the current (starting) position of the robot so that
@@ -11,7 +11,7 @@ abstract public class CommandBase {
 	 */
 	public void commandInit() {}
 
-	/*
+	/**
 	 * Will be called by autonomousPeriod() to actually execute this command.
 	 *
 	 * Returns `true` when finished, `false` when it's not finished. A return value of

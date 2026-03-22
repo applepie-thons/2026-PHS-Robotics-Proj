@@ -22,7 +22,11 @@ import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
 import frc.robot.Shooter.ShootingState;
 
+
 public class Robot extends TimedRobot {
+	private boolean commandMode = false;
+	private int reversePIDModifier = 1;
+
 	enum SwerveSpeedMode {
 		SLOW,
 		DEFAULT,
@@ -66,7 +70,7 @@ public class Robot extends TimedRobot {
 	double voltageScaleFactor = 0;
 
 	// ------ Camera ------ //
-	private final UsbCamera camera;
+	// private final UsbCamera camera;
 
 	// Linear Actuator
 	Servo linearAcutator = new Servo(0);
@@ -78,10 +82,12 @@ public class Robot extends TimedRobot {
 
 	public Robot() {
 		// TODO (Sahil): Check that is actually drops the camera's resolution.
-		this.camera = CameraServer.startAutomaticCapture();
-		this.camera.setPixelFormat(PixelFormat.kMJPEG);
-		this.camera.setResolution(320, 240);
-		this.camera.setFPS(30);
+		//this.camera = CameraServer.startAutomaticCapture();
+		//this.camera.setPixelFormat(PixelFormat.kMJPEG);
+		//this.camera.setResolution(320, 240);
+		//this.camera.setFPS(30);
+
+		autoTestCmds = new ArrayList<CommandBase>();
 	}
 
 	@Override
@@ -292,7 +298,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void testInit() {
 		// cleaning up to make it easieir to move to autonomousPeriodic
-		initCommands(new ClimbExtendCmd( climb ), new ClimbRetractCmd( climb ));
+		// initCommands(new ClimbExtendCmd( climb ), new ClimbRetractCmd( climb ));
 
 		/*
 		autoTestCmds.add( new ClimbExtendCmd( climb ) );
@@ -303,9 +309,56 @@ public class Robot extends TimedRobot {
 		*/
 	}
 
-	public void testPeriodic2() {
+	@Override
+	public void testPeriodic() {
 		// cleaning up to make it easier to move this to autonomousPeriodic
-		runCommands();
+
+		SmartDashboard.putNumber("gyro degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
+		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
+
+		if (controllerRed.getLeftBumperButtonPressed() ) {
+			swerve_drive.resetGyro();
+		}
+
+		if (commandMode == false) {
+			double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 3);
+			double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 3);
+			double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 3);
+
+			if(!is_auto_turning){
+				swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+			}
+		}
+		else if (commandMode == true) {
+			runCommands();
+		}
+
+		if (controllerRed.getStartButtonPressed()) {
+			initCommands(new TurnToCmd(swerve_drive, 90, 0.035));//new MoveToCmd(swerve_drive, inches_to_meters(114.26 + 1.25), -1.0, 0.0), new MoveToCmd(swerve_drive, inches_to_meters(30.915), 0.0, 1.0));
+			commandMode = !commandMode;
+		}
+
+
+		if (controllerRed.getBackButtonPressed()) {
+			reversePIDModifier *= -1;
+		}
+
+		if (controllerRed.getXButtonPressed()) {
+			swerve_drive.setKP(swerve_drive.kP += 0.05 * reversePIDModifier);
+		}
+		if (controllerRed.getAButtonPressed()) {
+			swerve_drive.setKP(swerve_drive.kP += 0.1 * reversePIDModifier);
+		}
+		if (controllerRed.getBButtonPressed()) {
+			swerve_drive.setKP(swerve_drive.kP += 1 * reversePIDModifier);
+		}
+
+		if (controllerRed.getYButtonPressed()) {
+			swerve_drive.setKP(swerve_drive.kP += 2 * reversePIDModifier);
+		}
+		
+		SmartDashboard.putNumber("kP", swerve_drive.kP);
+		SmartDashboard.putNumber("reversePID", reversePIDModifier);
 
 		/*
 		if(currCmdIndex == autoTestCmds.size()) {
@@ -322,7 +375,7 @@ public class Robot extends TimedRobot {
 			nextCmd.commandInit();
 		}
 		*/
-
+		
 	}
 
 	/**
@@ -331,6 +384,7 @@ public class Robot extends TimedRobot {
 	 */
 	public void initCommands(CommandBase... commands) {
 		// clears array and adds the function parameters to the array
+		currCmdIndex = 0;
 		autoTestCmds.clear();
 		for(int i = 0; i < commands.length; i++) {
 			autoTestCmds.add(commands[i]);
@@ -355,13 +409,47 @@ public class Robot extends TimedRobot {
 
 		if (cmdFinished) {
 			currCmdIndex += 1;
+			if (currCmdIndex == autoTestCmds.size()) {
+				return;
+			}
 			CommandBase nextCmd = autoTestCmds.get( currCmdIndex );
 			nextCmd.commandInit();
 		}
 	}
 
-	@Override
-	public void testPeriodic() {
+	
+	public void testPeriodic2() {
+		if (controllerRed.getStartButtonPressed()) {
+			intake.swapPivotMode();
+		}
+		if (intake.getAutoMode() == true) {
+			intake.intakePeriodic();
+		}
+		else {
+			intake.intakePeriodic(0);
+		}
+
+		if (controllerRed.getBackButtonPressed()) {
+			reversePIDModifier *= -1;
+		}
+		if (controllerRed.getXButtonPressed()) {
+			intake.addTok(0.05 * reversePIDModifier);
+		}
+		if (controllerRed.getAButtonPressed()) {
+			intake.addTok(0.1 * reversePIDModifier);
+		}
+		if (controllerRed.getBButtonPressed()) {
+			intake.addTok(0.5 * reversePIDModifier);
+		}
+		if (controllerRed.getYButtonPressed()) {
+			intake.addTok(1 * reversePIDModifier);
+		}
+		
+		SmartDashboard.putNumber("k", intake.pivotConfig1.Slot0.kD);
+		SmartDashboard.putNumber("reversePID", reversePIDModifier);
+		intake.logIntake();
+
+		/*
 		// Divide by 5 to limit speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
@@ -382,7 +470,7 @@ public class Robot extends TimedRobot {
 		}
 		else is_auto_turning = false;
 
-		/*
+		
 		// commented out because this deadzone will only work for swerve drive and cause problems for tank
 		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
 		if(deadzone > joystickMagnitude){
