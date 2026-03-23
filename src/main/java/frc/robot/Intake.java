@@ -20,12 +20,11 @@ import frc.robot.Constants.ConfigConsts;
  */
 public class Intake
 {
-    //TODO get real values for in and out positions
     enum IntakePosition {
-        START(0),
-        IN(0.25),
-        PARTIAL(-0.25),
-        OUT(-0.33);
+        START(0.35),
+        IN(0.23),
+        PARTIAL(0.12),
+        OUT(0);
 
         private double position;
         IntakePosition(double rotations) {
@@ -43,6 +42,7 @@ public class Intake
     private double intakeSpeed = 0;
 
     public TalonFXConfiguration pivotConfig1 = new TalonFXConfiguration();
+    //TODO setup voltage request to use kI as 0 when intake is fully at a position
     private final PositionVoltage voltageRequest = new PositionVoltage(0).withSlot(0);
 
 
@@ -50,14 +50,14 @@ public class Intake
         this.wheelDrive = new TalonFX(ConfigConsts.intakeWheelDriveMotorId);
         this.pivot1 = new TalonFX(ConfigConsts.intakePivot1MotorId);
         this.pivot2 = new TalonFX(ConfigConsts.intakePivot2MotorId);
-        this.pivot1.setPosition(0);
+        this.pivot1.setPosition(0.35);
         this.pivot2.setPosition(0);
 
         //pid cofiguration for pivot1
-        pivotConfig1.Slot0.kP = 1.8; //needs to be redone 3rd - 8
+        pivotConfig1.Slot0.kP = 3.7; //needs to be redone 3rd - 8
         pivotConfig1.Slot0.kI = 0.5; //do this last - 0
-        pivotConfig1.Slot0.kD = 0.25; //needs to be set 4th - 1.65
-        pivotConfig1.Slot0.kG = 0.5; //needs to be redone 1st - 0.5
+        pivotConfig1.Slot0.kD = 0.25; //needs to be set 4th - 0.25
+        pivotConfig1.Slot0.kG = 0.7; //needs to be redone 1st - 0.5
         pivotConfig1.Slot0.kS = 0; //needs to be set 2nd - 0
         pivotConfig1.Slot0.GravityType = GravityTypeValue.Arm_Cosine;
 
@@ -114,7 +114,6 @@ public class Intake
         intakeLocation = newPosition;
     }
 
-    //TODO if statements here must be edited once proper positions have been implemented
     private void setIntakePosition() {
         //intakeLocation = (intakingState) ? IntakePosition.OUT : IntakePosition.IN;
         pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
@@ -149,6 +148,7 @@ public class Intake
         SmartDashboard.putNumber("intake piv 1 power", pivot1.get());
         SmartDashboard.putNumber("Intake velocity", pivot1.getVelocity().getValueAsDouble());
         SmartDashboard.putNumber("Intake Error", 360 * (intakeLocation.position - pivot1.getPosition().getValueAsDouble()));
+        SmartDashboard.putNumber("k", pivotConfig1.Slot0.kD);
     }
 }
 

@@ -309,8 +309,7 @@ public class Robot extends TimedRobot {
 		*/
 	}
 
-	@Override
-	public void testPeriodic() {
+	public void testPeriodic2() {
 		// cleaning up to make it easier to move this to autonomousPeriodic
 
 		SmartDashboard.putNumber("gyro degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
@@ -418,15 +417,23 @@ public class Robot extends TimedRobot {
 	}
 
 	
-	public void testPeriodic2() {
+	public void testPeriodic() {
 		if (controllerRed.getStartButtonPressed()) {
 			intake.swapPivotMode();
 		}
+
 		if (intake.getAutoMode() == true) {
 			intake.intakePeriodic();
 		}
 		else {
 			intake.intakePeriodic(0);
+		}
+
+		if (controllerRed.getLeftBumperButtonPressed()) {
+			intake.manualSetIntakePosition(IntakePosition.IN);
+		}
+		else if (controllerRed.getRightBumperButtonPressed()) {
+			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
 
 		if (controllerRed.getBackButtonPressed()) {
@@ -445,7 +452,6 @@ public class Robot extends TimedRobot {
 			intake.addTok(1 * reversePIDModifier);
 		}
 		
-		SmartDashboard.putNumber("k", intake.pivotConfig1.Slot0.kD);
 		SmartDashboard.putNumber("reversePID", reversePIDModifier);
 		intake.logIntake();
 
