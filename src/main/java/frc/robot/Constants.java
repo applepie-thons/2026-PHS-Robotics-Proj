@@ -52,7 +52,7 @@ public final class Constants {
 		public static final int shooterOutKrakenMotorId = 27;
 
 		/***************************** Intake *****************************/
-		public static final int intakeWheelDriveMotorId = 14;
+		public static final int intakeWheelDriveMotorId = 8;
 		public static final int intakePivot1MotorId = 15;
 		public static final int intakePivot2MotorId = 16;
 

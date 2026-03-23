@@ -7,6 +7,7 @@ import com.ctre.phoenix.motorcontrol.can.TalonSRX;
 import com.ctre.phoenix6.hardware.TalonFX;
 import edu.wpi.first.wpilibj.Timer;
 import frc.robot.Constants.ConfigConsts;
+import frc.robot.Shooter.ShootingState;
 
 public class Shooter {
 	public enum ShootingState {
@@ -82,5 +83,29 @@ public class Shooter {
 		} else {
 			shooterOut.set(0);
 		}
+	}
+}
+
+class ShootCmd extends CommandBase {
+	Shooter shooter;
+	double time = 0.0;
+	double initial_time;
+
+	private void ShootCmd(Shooter shoot, double secs) {
+		this.shooter = shoot;
+		this.time = secs;
+	}
+	public void commandInit() {
+		shooter.setShootingState(ShootingState.LAUNCH);
+		this.initial_time = Timer.getFPGATimestamp();
+	}
+
+
+	public boolean commandPeriodic() {
+		shooter.periodic();
+		if(Timer.getFPGATimestamp() - initial_time >= time) {
+			shooter.setShootingState(ShootingState.UNLAUNCH);
+			return(true);
+		} else return(false);
 	}
 }

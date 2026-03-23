@@ -30,6 +30,14 @@ public class Robot extends TimedRobot {
 		EXTRA_FAST;
 	}
 
+	enum AutoStartPos {
+		LEFT,
+		CENTER,
+		RIGHT;
+	}
+
+	private AutoStartPos start_position = AutoStartPos.RIGHT;
+
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
 	private final XboxController controllerYellow = new XboxController(1);
@@ -57,7 +65,15 @@ public class Robot extends TimedRobot {
 
 	// ------ Sonar ------ //
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
-	double voltageScaleFactor = 0;
+	double voltage_scale_factor = 0;
+	
+	enum to_wall_sonar_state
+	{
+		MOVING,
+		DISABLED;
+	}
+
+	to_wall_sonar_state current_sonar_state = to_wall_sonar_state.DISABLED;
 
 	// ------ Camera ------ //
 	// private final UsbCamera camera;
@@ -79,7 +95,7 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void robotPeriodic() {
-		voltageScaleFactor = 5/RobotController.getVoltage5V();
+		voltage_scale_factor = 5/RobotController.getVoltage5V();
 	}
 
 	@Override
@@ -170,7 +186,7 @@ public class Robot extends TimedRobot {
 		// should make robot turn to whatever angle is being pressed on the d-pad
 		if(!(controllerRed.getPOV() == -1)){
 			is_auto_turning = true;
-			swerve_drive.turn_to_degree(controllerRed.getPOV() - 180, 0.2);
+			swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.2);
 		}
 		else{
 			is_auto_turning = false;
@@ -270,11 +286,8 @@ public class Robot extends TimedRobot {
 		}
 
 		if (controllerRed.getRightBumperButtonPressed()) {
-			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(80.76), -1.0, 0.0),
-						 new MoveToCmd(swerve_drive, inches_to_meters(66.29), 0.0, 1.0),
-						 new ClimbExtendCmd(climb),
-						 new MoveToCmd(swerve_drive, inches_to_meters(14), -1.0, 0.0),
-						 new ClimbRetractCmd(climb));
+			// change the start_position variable to whatever side we are on before the match
+			initCommandsFromStartPos(start_position);
 			commandMode = !commandMode;
 		}
 
@@ -286,6 +299,8 @@ public class Robot extends TimedRobot {
 
 	// BY DAVID: For tuning PID with TurnToCmd and MoveToCmd.
 	public void testPeriodic2() {
+		sonarPeriodic();
+
 		SmartDashboard.putNumber("gyro degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
 
@@ -370,6 +385,27 @@ public class Robot extends TimedRobot {
 		}
 	}
 
+	public void initCommandsFromStartPos(AutoStartPos start_pos) {
+		if(start_pos == AutoStartPos.LEFT) {
+			//untested; from against the hub
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(114.26), -1.0, 0.0),
+						 new TurnToCmd(swerve_drive, 180, 0.035),
+						 new ClimbExtendCmd(climb),
+						 new MoveToCmd(swerve_drive, inches_to_meters(14.3325), 0.0, -1.0));
+		}
+		else if(start_pos == AutoStartPos.RIGHT) {
+			//tested; from middle of hump
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(80.76), -1.0, 0.0),
+						 new MoveToCmd(swerve_drive, inches_to_meters(66.29), 0.0, 1.0),
+						 new ClimbExtendCmd(climb),
+						 new MoveToCmd(swerve_drive, inches_to_meters(14), -1.0, 0.0),
+						 new ClimbRetractCmd(climb));
+		}
+		else {
+			//for the center, not done
+		}
+	}
+
 	// BY SUNAY: For tuning the intake arm.
 	public void testPeriodic1() {
 		if (controllerYellow.getStartButtonPressed()) {
@@ -431,25 +467,41 @@ public class Robot extends TimedRobot {
 		intake.logIntake();
 	}
 
-	public void sonarTestPeriodic() {
-		/*
-		// ---------- Sonar (Unused) ---------- //
-		- Yes, I still hate sonar. (Michael Milward, 2026)
+	// hey sonar isnt actually so bad - Michael 2026
+	public void sonarPeriodic() {
+		double sensorRange = ultrasonicSensor.getVoltage() * voltage_scale_factor;
 
-		double currentDistanceCentimeters = ultrasonicSensor.getValue() * 0.125;
-		double currentDistanceInches = ultrasonicSensor.getValue() * ultrasonicSensor.getVoltage() * 1.1;
-		double currentDistanceInches = ultrasonicSensor.getValue() * voltage_scale_factor * 0.0492;
-
-		SmartDashboard.putNumber("Sonar Distance (Inches)", currentDistanceInches);
-		SmartDashboard.putNumber("Voltage Scale Factor", voltage_scale_factor);
-
-		double sensorRange = ultrasonicSensor.getVoltage()*voltageScaleFactor;
 		double sensorInches = sensorRange * 39.3442622951;
 		double sensorCentimeters = sensorInches * 2.54;
+
 		SmartDashboard.putNumber("Sensor Range", sensorRange);
 		SmartDashboard.putNumber("Sensor Range (Inches)", sensorInches);
 		SmartDashboard.putNumber("Sensor Range (Centimeters)", sensorCentimeters);
-		*/
+
+		if (controllerRed.getRightBumperButtonPressed())
+		{
+			if (current_sonar_state == to_wall_sonar_state.DISABLED)
+			{
+				current_sonar_state = to_wall_sonar_state.MOVING;
+			}
+			else
+			{
+				current_sonar_state = to_wall_sonar_state.DISABLED;
+			}
+		}
+
+		
+		if (current_sonar_state == to_wall_sonar_state.MOVING)
+		{
+			double current_sonar_dir = swerve_drive.navxMxp.getRotation2d().getRadians();
+			double x_dir = -Math.cos(current_sonar_dir);
+			double y_dir = -Math.sin(current_sonar_dir);
+
+			if (sensorInches < 36)
+			{
+				//swerve_drive.setModules(x_dir, y_dir , );
+			}
+		}
 	}
 }
 
