@@ -41,9 +41,6 @@ public class SwerveModule {
 		this.directionMotor = new TalonFX(directionMotorId);
 		this.absoluteEncoder = new CoreCANcoder(absoluteEncoderId);
 
-		this.speedMotor.setNeutralMode(NeutralModeValue.Brake);
-		this.directionMotor.setNeutralMode(NeutralModeValue.Brake);
-
 		this.reverseSpeedMotor = reverseSpeedMotor;
 		this.reverseDirectionMotor = reverseDirectionMotor;
 		this.reverseAbsoluteEncoder = reverseAbsoluteEncoder;
@@ -57,15 +54,16 @@ public class SwerveModule {
 		// Reset the speedMotor's encoder.
 		this.speedMotor.setPosition(0);
 
-		
+
 		currentLimitConfig.CurrentLimits.StatorCurrentLimit = 100;
 		currentLimitConfig.CurrentLimits.StatorCurrentLimitEnable = true;
-		
+		currentLimitConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
+
 		for (int i = 0; i < 5; i++) {
 			speedMotor.getConfigurator().apply(currentLimitConfig);
 			directionMotor.getConfigurator().apply(currentLimitConfig);
 		}
-		
+
 	}
 
 	public double getDrivePosition() {
@@ -108,9 +106,6 @@ public class SwerveModule {
 	public void setDesiredState(SwerveModuleState state, boolean ignoreLowSpeed) {
 		// This "if" condition prevents the wheels from swinging back to their
 		// neutral position when the joysticks are let go.
-
-		SmartDashboard.putNumber(moduleName + " speedMps", state.speedMetersPerSecond);
-
 		if (ignoreLowSpeed && Math.abs(state.speedMetersPerSecond) < 0.02) {
 			stop();
 			return;
@@ -118,10 +113,10 @@ public class SwerveModule {
 
 		state.optimize(getModuleState().angle);
 
-		// TODO: The SwerveDriveKinematics page of WPILib says that this improves the "skew"
+		// The SwerveDriveKinematics page of WPILib says that this improves the "skew"
 		// of swerve drive when changing direction. It does this by reducing the speed of
-		// a module when it's not pointing in the desired direction. Test this.
-		// state.speedMetersPerSecond *= state.angle.minus(getState().angle).getCos();
+		// a module when it's not pointing in the desired direction.
+		state.speedMetersPerSecond *= state.angle.minus(getModuleState().angle).getCos();
 
 		double newSpeedMotorVal = state.speedMetersPerSecond / DriveConsts.maxMetersPerSecToMotorSpeed;
 		int speedReverse = reverseSpeedMotor ? -1 : 1;
@@ -151,6 +146,10 @@ public class SwerveModule {
 		directionMotor.set(directionMagnitude * reverse);
 	}
 
+	public void resetSpeedEncoder() {
+		speedMotor.setPosition(0);
+	}
+
 	public void log() {
 		/*
 		SmartDashboard.putNumber(moduleName + " drivePosition",
@@ -163,11 +162,21 @@ public class SwerveModule {
 
 		// SmartDashboard.putNumber( moduleName + " speed", speedMotor.get() );
 		// SmartDashboard.putNumber( moduleName + " direction", directionMotor.get() );
+
+
 		SmartDashboard.putNumber( moduleName + " speed",
 								  getDrivePosition() );
+
+		/*
+		  		SmartDashboard.putNumber( moduleName + " speed",
+								  this.speedMotor.getPosition().getValueAsDouble() );
+		*/
+
+		/*
 		SmartDashboard.putNumber( moduleName + " direction",
 								  getDriveVelocity() );
 		SmartDashboard.putNumber(moduleName + " absEncoderDegrees",
 								 getAbsoluteEncoderRad() * (180 / Math.PI));
+		*/
 	}
 }

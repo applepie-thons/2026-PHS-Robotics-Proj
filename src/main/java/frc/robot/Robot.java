@@ -134,10 +134,10 @@ public class Robot extends TimedRobot {
 		// Divide by 5 to limit rotation speed.
 		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / speedThrottle);
 
-		// TODO: See if squaring the input makes controlling feel better.
-		// xSpeed = Math.pow(xSpeed, 2) * Math.signum(xSpeed);
-		// ySpeed = Math.pow(ySpeed, 2) * Math.signum(ySpeed);
-		// rotSpeed = Math.pow(rotSpeed, 2) * Math.signum(rotSpeed);
+		// Square the input for finer grain control when the stick is partially held.
+		xSpeed = Math.pow(xSpeed, 2) * Math.signum(xSpeed);
+		ySpeed = Math.pow(ySpeed, 2) * Math.signum(ySpeed);
+		rotSpeed = Math.pow(rotSpeed, 2) * Math.signum(rotSpeed);
 
 		if(!is_auto_turning){
 			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
@@ -145,10 +145,8 @@ public class Robot extends TimedRobot {
 
 		// ------------------------------- Climb ------------------------------- //
 		// Square the inputs for finer-grain control.
-		// TODO: I think something was rewired during competition, so the names 'retract'
-		// and 'extend' have opposite meanings. Double check that.
-		double climbRetractSpeed = Math.pow(controllerRed.getRightTriggerAxis(), 2);
-		double climbExtendSpeed = Math.pow(controllerRed.getLeftTriggerAxis(), 2) * -1;
+		double climbRetractSpeed = Math.pow(controllerRed.getLeftTriggerAxis(), 2);
+		double climbExtendSpeed = Math.pow(controllerRed.getRightTriggerAxis(), 2);
 		boolean ignoreClimbLimit = controllerRed.getBackButton();
 		climb.set(climbRetractSpeed, climbExtendSpeed, ignoreClimbLimit );
 		if (controllerRed.getStartButtonPressed()) {
@@ -254,9 +252,40 @@ public class Robot extends TimedRobot {
 		// initCommands(new ClimbExtendCmd( climb ), new ClimbRetractCmd( climb ));
 	}
 
-	public void testPeriodic2() {
-		// cleaning up to make it easier to move this to autonomousPeriodic
+	// BY SAHIL: More late night testing of command sequencing. Feel free to transfer
+	// the command list to another place and remove this function.
+	public void testPeriodic() {
+		if (controllerRed.getLeftBumperButtonPressed() ) {
+			swerve_drive.resetGyro();
+			swerve_drive.resetSpeedEncoders();
+		}
 
+		if (commandMode) {
+			runCommands();
+		} else {
+			double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 6);
+			double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 6);
+			double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 6);
+			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+		}
+
+		if (controllerRed.getRightBumperButtonPressed()) {
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(80.76), -1.0, 0.0),
+						 new MoveToCmd(swerve_drive, inches_to_meters(66.29), 0.0, 1.0),
+						 new ClimbExtendCmd(climb),
+						 new MoveToCmd(swerve_drive, inches_to_meters(14), -1.0, 0.0),
+						 new ClimbRetractCmd(climb));
+			commandMode = !commandMode;
+		}
+
+		swerve_drive.log();
+		SmartDashboard.putBoolean("commandMode", commandMode);
+		SmartDashboard.putNumber( "currCmdIndex", currCmdIndex);
+		SmartDashboard.putNumber("gyro degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
+	}
+
+	// BY DAVID: For tuning PID with TurnToCmd and MoveToCmd.
+	public void testPeriodic2() {
 		SmartDashboard.putNumber("gyro degrees", swerve_drive.navxMxp.getRotation2d().getDegrees());
 		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
 
@@ -303,23 +332,6 @@ public class Robot extends TimedRobot {
 
 		SmartDashboard.putNumber("kP", swerve_drive.kP);
 		SmartDashboard.putNumber("reversePID", reversePIDModifier);
-
-		/*
-		if(currCmdIndex == autoTestCmds.size()) {
-			// We have iterated through all of the commands. There's nothing left to do,
-			// so return early.
-			return;
-		}
-		CommandBase currCmd = autoTestCmds.get( currCmdIndex );
-		boolean cmdFinished = currCmd.commandPeriodic();
-
-		if (cmdFinished) {
-			currCmdIndex += 1;
-			CommandBase nextCmd = autoTestCmds.get( currCmdIndex );
-			nextCmd.commandInit();
-		}
-		*/
-
 	}
 
 	/**
@@ -358,9 +370,9 @@ public class Robot extends TimedRobot {
 		}
 	}
 
-
-	public void testPeriodic() {
-		if (controllerRed.getStartButtonPressed()) {
+	// BY SUNAY: For tuning the intake arm.
+	public void testPeriodic1() {
+		if (controllerYellow.getStartButtonPressed()) {
 			intake.swapPivotMode();
 		}
 
@@ -371,26 +383,26 @@ public class Robot extends TimedRobot {
 			intake.intakePeriodic(0);
 		}
 
-		if (controllerRed.getLeftBumperButtonPressed()) {
+		if (controllerYellow.getLeftBumperButtonPressed()) {
 			intake.manualSetIntakePosition(IntakePosition.IN);
 		}
-		else if (controllerRed.getRightBumperButtonPressed()) {
+		else if (controllerYellow.getRightBumperButtonPressed()) {
 			intake.manualSetIntakePosition(IntakePosition.OUT);
 		}
 
-		if (controllerRed.getBackButtonPressed()) {
+		if (controllerYellow.getBackButtonPressed()) {
 			reversePIDModifier *= -1;
 		}
-		if (controllerRed.getXButtonPressed()) {
+		if (controllerYellow.getXButtonPressed()) {
 			intake.addTok(0.05 * reversePIDModifier);
 		}
-		if (controllerRed.getAButtonPressed()) {
+		if (controllerYellow.getAButtonPressed()) {
 			intake.addTok(0.1 * reversePIDModifier);
 		}
-		if (controllerRed.getBButtonPressed()) {
+		if (controllerYellow.getBButtonPressed()) {
 			intake.addTok(0.5 * reversePIDModifier);
 		}
-		if (controllerRed.getYButtonPressed()) {
+		if (controllerYellow.getYButtonPressed()) {
 			intake.addTok(1 * reversePIDModifier);
 		}
 
@@ -399,7 +411,7 @@ public class Robot extends TimedRobot {
 
 		/*
 		// commented out because this deadzone will only work for swerve drive and cause problems for tank
-		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
+		double joystickMagnitude = Math.sqrt(Math.pow(controllerYellow.getLeftX(), 2) + Math.pow(controllerYellow.getLeftY(), 2));
 		if(deadzone > joystickMagnitude){
 			throttle = 0.0;
 		}

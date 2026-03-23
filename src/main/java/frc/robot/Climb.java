@@ -24,13 +24,18 @@ public class Climb {
 		this.climbMotor.setNeutralMode(NeutralModeValue.Brake);
 
 		this.minClimbPosition = 0;
-		this.maxClimbPosition = 69;
+		this.maxClimbPosition = 43.9;
+	}
+
+	public double getPosition() {
+		int reverse = ConfigConsts.reverseClimbMotor ? -1 : 1;
+		return climbMotor.getPosition().getValueAsDouble() * reverse;
 	}
 
 	public boolean set(double retractInput, double extendInput, boolean ignoreLimits) {
-		double climbSpeed = retractInput + extendInput;
+		double climbSpeed = (retractInput * -1) + extendInput;
 		if (!ignoreLimits) {
-			double currClimbPosition = climbMotor.getPosition().getValueAsDouble();
+			double currClimbPosition = getPosition();
 
 			if (climbSpeed < 0 && currClimbPosition <= minClimbPosition) {
 				climbSpeed = 0;
@@ -39,7 +44,9 @@ public class Climb {
 			}
 		}
 
-		climbMotor.set(climbSpeed);
+		int reverse = ConfigConsts.reverseClimbMotor ? -1 : 1;
+		climbMotor.set(climbSpeed * reverse);
+		log();
 
 		boolean finishedClimbing = ( climbSpeed == 0 );
 		return finishedClimbing;
@@ -51,7 +58,7 @@ public class Climb {
 	}
 
 	public void log() {
-		SmartDashboard.putNumber("currClimbPosition", climbMotor.getPosition().getValueAsDouble());
+		SmartDashboard.putNumber("currClimbPosition", getPosition());
 	}
 }
 
@@ -64,13 +71,19 @@ class ClimbExtendCmd extends CommandBase {
 	// The constructor for any command must also take in the object it wants to control
 	// (`Climb` in this case, `SwerveDrive` in the case of swerve auto), so that it can
 	// actually control it in `commandPeriodic()`.
+
+	private double timeToMaxForHysteresis = 0.5;
+	private double maxMotorValForHysteresis = 1;
+	private Hysteresis2 hysteresis =
+		new Hysteresis2(timeToMaxForHysteresis, maxMotorValForHysteresis);
+
 	public ClimbExtendCmd(Climb inClimb) {
 		this.climb = inClimb;
 	}
 
 	public boolean commandPeriodic() {
 		double retractInput = 0;
-		double extendInput = 0.75;
+		double extendInput = hysteresis.nextValue(0.75);
 		boolean ignoreLimits = false;
 		return climb.set(retractInput, extendInput, ignoreLimits);
 	}
@@ -79,6 +92,12 @@ class ClimbExtendCmd extends CommandBase {
 class ClimbRetractCmd extends CommandBase {
 	Climb climb;
 	double startTime;
+
+	private double timeToMaxForHysteresis = 0.5;
+	private double maxMotorValForHysteresis = 1;
+	private Hysteresis2 hysteresis =
+		new Hysteresis2(timeToMaxForHysteresis, maxMotorValForHysteresis);
+
 	public ClimbRetractCmd(Climb inClimb) {
 		this.climb = inClimb;
 	}
@@ -88,16 +107,14 @@ class ClimbRetractCmd extends CommandBase {
 	}
 
 	public boolean commandPeriodic() {
-		// TODO: Maybe apply hysteresis here. Retracting with full force right away is a little
-		// scary, but we might need to eventually apply full force to lift the bot up.
-
 		double elapsedTime = Timer.getFPGATimestamp() - startTime;
 		if (elapsedTime > 5) {
 			// Stop attempting to climb after 5 seconds to avoid stressing the motor too much.
 			// The 1-to-1 brake gearbox prevents us from slipping down anyways.
 			return true;
 		}
-		double retractInput = 1;
+
+		double retractInput = hysteresis.nextValue(1);
 		double extendInput = 0;
 
 		boolean ignoreLimits = false;

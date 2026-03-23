@@ -49,9 +49,6 @@ public final class Constants {
 
 		/***************************** Shooter *****************************/
 		public static final int shooterInMotorId = 12;
-		// TODO: This can probably be removed, if we're not going to be using a
-		// TalonSRX for the upper launcher motor.
-		public static final int shooterOutMotorId = 13;
 		public static final int shooterOutKrakenMotorId = 27;
 
 		/***************************** Intake *****************************/
@@ -61,6 +58,7 @@ public final class Constants {
 
 		/***************************** Climb *****************************/
 		public static final int climbMotorId = 17;
+		public static final boolean reverseClimbMotor = true;
 	}
 
 	public static final class ModuleConsts {
@@ -72,12 +70,16 @@ public final class Constants {
 		// docs.wcproducts.com/welcome/gearboxes/wcp-swerve-x2/general-info/ratio-options
 		// public static final double wheelRotationPerSpeedMotorRotation = 1 / 6.82;
 
+		/*
 		public static final double wheelRotationPerSpeedMotorRotation = 1 / 6.2;
 
 		// A.K.A., the circumference of a wheel.
 		public static final double metersPerWheelRotation = Math.PI * wheelDiameterMeters;
 		public static final double speedMotorRotationToMeters = wheelRotationPerSpeedMotorRotation
 				* metersPerWheelRotation;
+		*/
+
+		public static final double speedMotorRotationToMeters = ( 12 * 0.305 ) / 74.749;
 
 		// "P" component of our direction PID controller.
 		public static final double directionP = 0.75 / Math.PI;

@@ -18,6 +18,19 @@ public class Shooter {
 	private TalonSRX shooterIn;
 	private TalonFX shooterOut;
 
+	private double shootInLaunchSpeed = -1;
+	private double shootInUnlaunchSpeed = 0.25;
+
+	private double shootOutLaunchSpeed = -0.75;
+	private double shootOutUnlaunchSpeed = 0.5;
+
+	// Slow speeds for testing
+	// private double shootInLaunchSpeed = -0.25;
+	// private double shootInUnlaunchSpeed = 0.25;
+	//
+	// private double shootOutLaunchSpeed = -0.1;
+	// private double shootOutUnlaunchSpeed = 0.1;
+
 	private ShootingState currentOverallState = ShootingState.NOTHING;
 	double timeAtPress = 0.0;
 
@@ -27,6 +40,9 @@ public class Shooter {
 	}
 
 	public void setShootingState(ShootingState newOverallState) {
+		if (newOverallState == currentOverallState) {
+			return;
+		}
 		currentOverallState = newOverallState;
 		timeAtPress = Timer.getFPGATimestamp();
 	}
@@ -47,23 +63,22 @@ public class Shooter {
 			shooterInState = ShootingState.UNLAUNCH;
 		}
 
-		set(shooterOutState, shooterInState);
+		set(shooterInState, shooterOutState);
 	}
 
 	private void set(ShootingState shooterInState, ShootingState shooterOutState) {
-		// TODO: Double check that the directions of these inputs are correct.
 		if (shooterInState == ShootingState.LAUNCH) {
-			shooterIn.set(ControlMode.PercentOutput, -1);
+			shooterIn.set(ControlMode.PercentOutput, shootInLaunchSpeed);
 		} else if (shooterInState == ShootingState.UNLAUNCH) {
-			shooterIn.set(ControlMode.PercentOutput, 0.25);
+			shooterIn.set(ControlMode.PercentOutput, shootInUnlaunchSpeed);
 		} else {
 			shooterIn.set(ControlMode.PercentOutput, 0);
 		}
 
 		if (shooterOutState == ShootingState.LAUNCH) {
-			shooterOut.set(-0.75);
+			shooterOut.set(shootOutLaunchSpeed);
 		} else if (shooterOutState == ShootingState.UNLAUNCH) {
-			shooterOut.set(0.75);
+			shooterOut.set(shootOutUnlaunchSpeed);
 		} else {
 			shooterOut.set(0);
 		}

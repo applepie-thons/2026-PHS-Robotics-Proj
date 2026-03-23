@@ -7,11 +7,12 @@ import com.studica.frc.AHRS.NavXComType;
 import com.studica.frc.AHRS;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
-import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+// import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
+import frc.robot.Constants.ModuleConsts;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -22,7 +23,7 @@ public class SwerveDrive {
 	// kI = 5.0
 
 	public double kP = 5.0;
-	private PIDController turn_pid = new PIDController(2.8, 5.0, 0);
+	public PIDController turn_pid = new PIDController(2.8, 5.0, 0);
 	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
 
 	// Shortened names for convenience:
@@ -72,20 +73,29 @@ public class SwerveDrive {
 
 	public AHRS navxMxp = new AHRS(NavXComType.kMXP_SPI);
 
-	public SwerveDriveOdometry odometry;
+	// public SwerveDriveOdometry odometry;
 
 	/*
+	private double maxSpeedForHysteresis = 2.5;
+	private double timeToMaxForHysteresis = 0.5;
+
 	private Hysteresis2 xHysteresis = new Hysteresis2(
-		1, DriveConsts.maxMetersPerSecToMotorSpeed / 1.8);
+		timeToMaxForHysteresis,
+		DriveConsts.maxMetersPerSecToMotorSpeed / maxSpeedForHysteresis);
 	private Hysteresis2 yHysteresis = new Hysteresis2(
-		1, DriveConsts.maxMetersPerSecToMotorSpeed / 1.8);
+		timeToMaxForHysteresis,
+		DriveConsts.maxMetersPerSecToMotorSpeed / maxSpeedForHysteresis);
 	private Hysteresis2 rotHysteresis = new Hysteresis2(
-		1, DriveConsts.maxRadPerSecToMotorSpeed / 1.8);
+		timeToMaxForHysteresis,
+		DriveConsts.maxRadPerSecToMotorSpeed / maxSpeedForHysteresis);
 	*/
 
 	public SwerveModulePosition[] getModulePositions() {
-		// TODO: The ordering of the modules here is guessed based on how we need to pass
+		// TODO_OLD: The ordering of the modules here is guessed based on how we need to pass
 		// swerve module states in `setModules()`. Confirm that this is correct.
+		//
+		// 3/22/2026: I don't think we have the need or time to do anything meaningful
+		// odometry, which is the only user of this function.
 		SwerveModulePosition[] modulePositions = {
 			rfModule.getModulePosition(),
 			lfModule.getModulePosition(),
@@ -103,10 +113,12 @@ public class SwerveDrive {
 				navxMxp.reset();
 
 				// initialize after gyro is reset, because it needs the gyro position for initialization
+				/*
 				odometry = new SwerveDriveOdometry(
 					DriveConsts.driveKinematics,
 					navxMxp.getRotation2d(),
 					getModulePositions());
+				*/
 
 			} catch (Exception e) {
 			}
@@ -127,14 +139,16 @@ public class SwerveDrive {
 	}
 
 	public void setModules(double xSpeed, double ySpeed, double turnSpeed) {
-		// TODO: See if these improve the feel of driving.
+		// Hysteresis code. Doesn't really improve the feel of driving, so commented out.
 		// xSpeed = xHysteresis.nextValue(xSpeed);
 		// ySpeed = yHysteresis.nextValue(ySpeed);
 		// turnSpeed = rotHysteresis.nextValue(turnSpeed);
 
-		// TODO: Check that "getRotation2d()" returns an angle in radians, and that it is CCW positive.
+		// NOTE: The angle that "getRotation2d()" returns is CCW positive.
 		ChassisSpeeds chassisSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
 				xSpeed, ySpeed, turnSpeed, navxMxp.getRotation2d());
+
+		SmartDashboard.putNumber( "rotation2d deg",  navxMxp.getRotation2d().getDegrees() );
 
 		SwerveModuleState[] moduleStates = DriveConsts.driveKinematics.toSwerveModuleStates(chassisSpeeds);
 		SwerveDriveKinematics.desaturateWheelSpeeds(
@@ -146,7 +160,7 @@ public class SwerveDrive {
 		lbModule.setDesiredState(moduleStates[3], ignoreLowSpeed);
 		rbModule.setDesiredState(moduleStates[2], ignoreLowSpeed);
 
-		odometry.update(navxMxp.getRotation2d(), getModulePositions());
+		// odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
 
 	public void setWheelsToAngle(double angleRadians) {
@@ -161,7 +175,7 @@ public class SwerveDrive {
 		lbModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 		rbModule.setDesiredState(swerveModuleState, ignoreLowSpeed);
 
-		odometry.update(navxMxp.getRotation2d(), getModulePositions());
+		// odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
 
 	public void stopModules() {
@@ -170,10 +184,8 @@ public class SwerveDrive {
 		lbModule.stop();
 		rbModule.stop();
 
-		odometry.update(navxMxp.getRotation2d(), getModulePositions());
+		// odometry.update(navxMxp.getRotation2d(), getModulePositions());
 	}
-
-
 
 	public boolean turn_to_degree(double degree, double errorTolerance) {
 		double current_degree = -navxMxp.getRotation2d().getRadians();
@@ -224,11 +236,19 @@ public class SwerveDrive {
 		}
 	}
 
+	public void resetSpeedEncoders() {
+		lfModule.resetSpeedEncoder();
+		rfModule.resetSpeedEncoder();
+		lbModule.resetSpeedEncoder();
+		rbModule.resetSpeedEncoder();
+	}
+
 	public void log() {
 		lfModule.log();
 		rfModule.log();
 		lbModule.log();
 		rbModule.log();
+		SmartDashboard.putNumber("speedMotorRotationToMeters", ModuleConsts.speedMotorRotationToMeters);
 	}
 }
 
@@ -240,17 +260,20 @@ class MoveToCmd extends CommandBase {
 	double Xdirection = 0.0;
 	double Ydirection = 0.0;
 
+	double start_radians = 0.0;
+
 	public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
 		this.swerve_drive = swerve_drive;
 		this.meters = Meters;
 		this.Xdirection = X_direction;
 		this.Ydirection = Y_direction;
-		swerve_drive.move_pid.setTolerance(0.01);
+		// swerve_drive.move_pid.setTolerance(0.01);
 	}
 
 
 	public void commandInit() {
 		start_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
+		start_radians = -swerve_drive.navxMxp.getRotation2d().getRadians();
 	}
 
 	public boolean commandPeriodic() {
@@ -260,6 +283,10 @@ class MoveToCmd extends CommandBase {
 		double current_dist = lf_dist - start_dist;
 
 		double pid_result = swerve_drive.move_pid.calculate(Math.abs(current_dist), meters);
+
+		double current_radians = -swerve_drive.navxMxp.getRotation2d().getRadians();
+		// Keep the robot pointed in the angle it started at.
+		double angle_pid_result = swerve_drive.turn_pid.calculate(current_radians, start_radians);
 
 		// smartdashboard things
 		SmartDashboard.putNumber("lf module distance", lf_dist);
@@ -271,7 +298,7 @@ class MoveToCmd extends CommandBase {
 		pid_result = (pid_result > 2.5) ? 2.5 : pid_result;
 
 		if(!swerve_drive.move_pid.atSetpoint()){
-			swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, 0.0);
+			swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, angle_pid_result);
 			return(false);
 		}
 		else{
