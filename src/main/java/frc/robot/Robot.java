@@ -13,7 +13,6 @@ import edu.wpi.first.util.PixelFormat;
 import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
@@ -72,9 +71,6 @@ public class Robot extends TimedRobot {
 	// ------ Camera ------ //
 	// private final UsbCamera camera;
 
-	// Linear Actuator
-	Servo linearAcutator = new Servo(0);
-	private double servoLastUpdateTime = 0;
 
 	// Autonomous command sequence.
 	ArrayList<CommandBase> autoTestCmds;
@@ -100,36 +96,12 @@ public class Robot extends TimedRobot {
 		// Setup for ADXR Gyro
 		adxrGyro.reset();
 		adxrGyro.calibrate();
-		servoLastUpdateTime = Timer.getFPGATimestamp();
-	}
-
-	public void servoPeriodic() {
-		double currTime = Timer.getFPGATimestamp();
-		double servoElapsedTime = currTime - servoLastUpdateTime;
-
-		double currValue = linearAcutator.get();
-		double newValue;
-
-		double servoIn = 0.2;
-		double servoOut = 0.38;
-
-		if (currValue <= servoIn && servoElapsedTime > 2.6) {
-			newValue = servoOut;
-			servoLastUpdateTime = currTime;
-		} else if (currValue >= servoOut && servoElapsedTime > 2.6) {
-			newValue = servoIn;
-			servoLastUpdateTime = currTime;
-		} else {
-			newValue = currValue;
-		}
-		linearAcutator.set(newValue);
 	}
 
 	@Override
 	public void autonomousInit() {
 		auto_start_time = Timer.getFPGATimestamp();
 		shooter.setShootingState(ShootingState.LAUNCH);
-		linearAcutator.set(0);
 	}
 
 	@Override
@@ -137,7 +109,6 @@ public class Robot extends TimedRobot {
 		double currentTime = Timer.getFPGATimestamp();
 		double elapsedTime = currentTime - auto_start_time;
 		shooter.periodic();
-		servoPeriodic();
 	}
 
 	public void redControllerPeriodic() {
@@ -284,13 +255,11 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void teleopInit() {
-		linearAcutator.set(0);
 		shooter.setShootingState(ShootingState.NOTHING);
 	}
 
 	@Override
 	public void teleopPeriodic() {
-		servoPeriodic();
 		redControllerPeriodic();
 		yellowControllerPeriodic();
 	}
@@ -355,7 +324,7 @@ public class Robot extends TimedRobot {
 		if (controllerRed.getYButtonPressed()) {
 			swerve_drive.setKP(swerve_drive.kP += 2 * reversePIDModifier);
 		}
-		
+
 		SmartDashboard.putNumber("kP", swerve_drive.kP);
 		SmartDashboard.putNumber("reversePID", reversePIDModifier);
 
@@ -374,7 +343,7 @@ public class Robot extends TimedRobot {
 			nextCmd.commandInit();
 		}
 		*/
-		
+
 	}
 
 	/**
@@ -416,7 +385,7 @@ public class Robot extends TimedRobot {
 		}
 	}
 
-	
+
 	public void testPeriodic() {
 		if (controllerRed.getStartButtonPressed()) {
 			intake.swapPivotMode();
@@ -451,7 +420,7 @@ public class Robot extends TimedRobot {
 		if (controllerRed.getYButtonPressed()) {
 			intake.addTok(1 * reversePIDModifier);
 		}
-		
+
 		SmartDashboard.putNumber("reversePID", reversePIDModifier);
 		intake.logIntake();
 
@@ -476,7 +445,7 @@ public class Robot extends TimedRobot {
 		}
 		else is_auto_turning = false;
 
-		
+
 		// commented out because this deadzone will only work for swerve drive and cause problems for tank
 		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
 		if(deadzone > joystickMagnitude){

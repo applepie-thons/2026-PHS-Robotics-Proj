@@ -115,3 +115,59 @@
 		hysteresis_mult += increase_speed * deltaTime;
 		SmartDashboard.putNumber("hysteresis multiplier", hysteresis_mult);
 	}
+
+/*
+// Linear Actuator Code
+
+import edu.wpi.first.wpilibj.Servo;
+
+public class Robot extends TimedRobot {
+	// Linear Actuator
+	Servo linearAcutator = new Servo(0);
+	private double servoLastUpdateTime = 0;
+
+	public void servoPeriodic() {
+		double currTime = Timer.getFPGATimestamp();
+		double servoElapsedTime = currTime - servoLastUpdateTime;
+
+		double currValue = linearAcutator.get();
+		double newValue;
+
+		double servoIn = 0.2;
+		double servoOut = 0.38;
+
+		if (currValue <= servoIn && servoElapsedTime > 2.6) {
+			newValue = servoOut;
+			servoLastUpdateTime = currTime;
+		} else if (currValue >= servoOut && servoElapsedTime > 2.6) {
+			newValue = servoIn;
+			servoLastUpdateTime = currTime;
+		} else {
+			newValue = currValue;
+		}
+		linearAcutator.set(newValue);
+	}
+
+	public void robotInit() {
+		servoLastUpdateTime = Timer.getFPGATimestamp();
+	}
+
+	public void autonomousInit() {
+		linearAcutator.set(0);
+	}
+
+	public void autonomousPeriodic() {
+		servoPeriodic();
+	}
+
+	public void teleopInit() {
+		linearAcutator.set(0);
+	}
+
+	public void teleopPeriodic() {
+		servoPeriodic();
+	}
+}
+
+
+*/
