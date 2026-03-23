@@ -14,7 +14,6 @@ import frc.robot.Constants.ConfigConsts;
 import frc.robot.Constants.DriveConsts;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class SwerveDrive {
@@ -25,9 +24,6 @@ public class SwerveDrive {
 	public double kP = 5.0;
 	private PIDController turn_pid = new PIDController(2.8, 5.0, 0);
 	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
-
-	// --- For move meters function --- //
-	private double initial_module_dist = 0.0;
 
 	// Shortened names for convenience:
 	// * lf: left-front

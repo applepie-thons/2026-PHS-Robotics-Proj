@@ -10,17 +10,14 @@ import java.util.ArrayList;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
-import edu.wpi.first.wpilibj.ADXRS450_Gyro;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
 import frc.robot.Shooter.ShootingState;
-
 
 public class Robot extends TimedRobot {
 	private boolean commandMode = false;
@@ -58,12 +55,6 @@ public class Robot extends TimedRobot {
 	// ---- Turn to Degree ---- //
 	private boolean is_auto_turning = false;
 
-	// ---- deltaTime ----//
-	private double auto_start_time = 0;
-
-	// ------ Gyro ------ //
-	private ADXRS450_Gyro adxrGyro = new ADXRS450_Gyro();
-
 	// ------ Sonar ------ //
 	public AnalogInput ultrasonicSensor = new AnalogInput(0);
 	double voltageScaleFactor = 0;
@@ -92,22 +83,15 @@ public class Robot extends TimedRobot {
 	}
 
 	@Override
-	public void robotInit() {
-		// Setup for ADXR Gyro
-		adxrGyro.reset();
-		adxrGyro.calibrate();
-	}
+	public void robotInit() {}
 
 	@Override
 	public void autonomousInit() {
-		auto_start_time = Timer.getFPGATimestamp();
 		shooter.setShootingState(ShootingState.LAUNCH);
 	}
 
 	@Override
 	public void autonomousPeriodic() {
-		double currentTime = Timer.getFPGATimestamp();
-		double elapsedTime = currentTime - auto_start_time;
 		shooter.periodic();
 	}
 
@@ -266,16 +250,8 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void testInit() {
-		// cleaning up to make it easieir to move to autonomousPeriodic
+		// Autonomous test code.
 		// initCommands(new ClimbExtendCmd( climb ), new ClimbRetractCmd( climb ));
-
-		/*
-		autoTestCmds.add( new ClimbExtendCmd( climb ) );
-		autoTestCmds.add( new ClimbRetractCmd( climb ) );
-
-		CommandBase firstCmd = autoTestCmds.get( 0 );
-		firstCmd.commandInit();
-		*/
 	}
 
 	public void testPeriodic2() {
@@ -358,15 +334,12 @@ public class Robot extends TimedRobot {
 			autoTestCmds.add(commands[i]);
 		}
 
-		// Sahil's code unchanged
 		CommandBase firstCmd = autoTestCmds.get( 0 );
 		firstCmd.commandInit();
 	}
 
 	/**use this in the autoPeriodic function to run the commands*/
 	public void runCommands() {
-		//Sahil's code unchanged
-
 		if(currCmdIndex == autoTestCmds.size()) {
 			// We have iterated through all of the commands. There's nothing left to do,
 			// so return early.
@@ -425,27 +398,6 @@ public class Robot extends TimedRobot {
 		intake.logIntake();
 
 		/*
-		// Divide by 5 to limit speed.
-		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 5);
-		double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 5);
-
-		if(!is_auto_turning){
-			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
-		}
-
-		 //turn_to_degree forward + backward
-		SmartDashboard.putNumber("gyro radians", swerve_drive.navxMxp.getRotation2d().getRadians());
-
-		if (controllerRed.getYButton()) {
-			is_auto_turning = !swerve_drive.turn_to_degree(0, 0.2);
-		}
-		else if (controllerRed.getXButton()) {
-			is_auto_turning = !swerve_drive.turn_to_degree(180, 0.2);
-		}
-		else is_auto_turning = false;
-
-
 		// commented out because this deadzone will only work for swerve drive and cause problems for tank
 		double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
 		if(deadzone > joystickMagnitude){
