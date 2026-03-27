@@ -75,6 +75,11 @@ public class Robot extends TimedRobot {
 
 	to_wall_sonar_state current_sonar_state = to_wall_sonar_state.DISABLED;
 
+	// ----- Distance Test ------ //
+	double dist_modifier_mult = 1.0;
+	double dist_modifier = 1.65;
+	double modifier_change_speed = 0.1;
+
 	// ------ Camera ------ //
 	// private final UsbCamera camera;
 
@@ -103,12 +108,14 @@ public class Robot extends TimedRobot {
 
 	@Override
 	public void autonomousInit() {
-		shooter.setShootingState(ShootingState.LAUNCH);
+		//shooter.setShootingState(ShootingState.LAUNCH);
+		initCommandsFromStartPos(start_position);
 	}
 
 	@Override
 	public void autonomousPeriodic() {
-		shooter.periodic();
+		//shooter.periodic();
+		runCommands();
 	}
 
 	public void redControllerPeriodic() {
@@ -185,8 +192,14 @@ public class Robot extends TimedRobot {
 		*/
 		// should make robot turn to whatever angle is being pressed on the d-pad
 		if(!(controllerRed.getPOV() == -1)){
+			SmartDashboard.putNumber("D-pad value", controllerRed.getPOV());
 			is_auto_turning = true;
-			swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.2);
+			// I dont know why this is commented out, but i'm going to keep the new stuff here like this
+			// just in case 
+
+			//swerve_drive.setModules(controllerRed.getLeftX(),
+			//	controllerRed.getLeftY(), swerve_drive.turn_to_degree_return_mode(controllerRed.getPOV(), 0.035));
+			// swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.2);
 		}
 		else{
 			is_auto_turning = false;
@@ -198,7 +211,7 @@ public class Robot extends TimedRobot {
 		// ------------------------------- Intake ------------------------------- //
 		// Set desired speed of the intaking wheels.
 		if (controllerYellow.getBButton()) {
-			intake.setIntakeSpeed(-0.55);
+			intake.setIntakeSpeed(-1);
 		}
 		else if (controllerYellow.getYButton()) {
 			intake.setIntakeSpeed(0.55);
@@ -279,10 +292,13 @@ public class Robot extends TimedRobot {
 		if (commandMode) {
 			runCommands();
 		} else {
+			redControllerPeriodic();
+			/*
 			double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / 6);
 			double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / 6);
 			double rotSpeed = controllerRed.getRightX() * (DriveConsts.maxRadPerSecToMotorSpeed / 6);
 			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+			*/
 		}
 
 		if (controllerRed.getRightBumperButtonPressed()) {
@@ -290,6 +306,34 @@ public class Robot extends TimedRobot {
 			initCommandsFromStartPos(start_position);
 			commandMode = !commandMode;
 		}
+
+		// distance modifier change code ------------------------
+		if(controllerYellow.getStartButtonPressed()) {
+			dist_modifier_mult *= -1.0;
+		}
+
+		if(controllerYellow.getAButtonPressed()) {
+			dist_modifier += modifier_change_speed * dist_modifier_mult;
+		}
+
+		if(controllerYellow.getBackButtonPressed()) {
+			if(modifier_change_speed == 0.1) {
+				modifier_change_speed = 0.25;
+			}
+			else if(modifier_change_speed == 0.25) {
+				modifier_change_speed = 1.0;
+			}
+			else if(modifier_change_speed == 1.0) {
+				modifier_change_speed = 2.0;
+			} else modifier_change_speed = 0.1;
+			
+
+			
+		}
+
+		SmartDashboard.putNumber("dist modifier", dist_modifier);
+		SmartDashboard.putNumber("modifier change speed", modifier_change_speed);
+		SmartDashboard.putNumber("dist modifier mult", dist_modifier_mult);
 
 		swerve_drive.log();
 		SmartDashboard.putBoolean("commandMode", commandMode);
@@ -388,21 +432,31 @@ public class Robot extends TimedRobot {
 	public void initCommandsFromStartPos(AutoStartPos start_pos) {
 		if(start_pos == AutoStartPos.LEFT) {
 			//untested; from against the hub
-			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(114.26), -1.0, 0.0),
-						 new TurnToCmd(swerve_drive, 180, 0.035),
-						 new ClimbExtendCmd(climb),
-						 new MoveToCmd(swerve_drive, inches_to_meters(14.3325), 0.0, -1.0));
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(112.26 - 10), -1.0, 0.0, false),
+						 new TurnToCmd(swerve_drive, 360, 0.035),
+						 // new ClimbExtendCmd(climb),
+						 new MoveToCmd(swerve_drive, inches_to_meters(14.3325 + dist_modifier), 0.0, -1.0, false));
 		}
 		else if(start_pos == AutoStartPos.RIGHT) {
 			//tested; from middle of hump
-			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(80.76), -1.0, 0.0),
-						 new MoveToCmd(swerve_drive, inches_to_meters(66.29), 0.0, 1.0),
+			/*
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(80.76), -1.0, 0.0));
+						 // new MoveToCmd(swerve_drive, inches_to_meters(66.29), 0.0, 1.0),
+						 // new ClimbExtendCmd(climb),
+						 // new MoveToCmd(swerve_drive, inches_to_meters(14), -1.0, 0.0),
+						 // new ClimbRetractCmd(climb));
+						 */
+			//from outside edge of hump
+			initCommands(new MoveToCmd(swerve_drive, 2.687, -1.0, 0.0, false),
+						 new MoveToCmd(swerve_drive, dist_modifier + inches_to_meters(20), 0.0, 1.0, true),
 						 new ClimbExtendCmd(climb),
-						 new MoveToCmd(swerve_drive, inches_to_meters(14), -1.0, 0.0),
+						 new MoveToCmd(swerve_drive, 0.196, 1.0, 0.0, false),
 						 new ClimbRetractCmd(climb));
 		}
 		else {
-			//for the center, not done
+			//for the center, just shooting
+			initCommands(new MoveToCmd(swerve_drive, 0.0, -1.0, 0.0, false), 
+						 new ShootCmd(shooter, 5));
 		}
 	}
 

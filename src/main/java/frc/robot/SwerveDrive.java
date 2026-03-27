@@ -16,6 +16,7 @@ import frc.robot.Constants.ModuleConsts;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.Timer;
 
 public class SwerveDrive {
 	// for turn_to_degree() function
@@ -24,6 +25,7 @@ public class SwerveDrive {
 
 	public double kP = 5.0;
 	public PIDController turn_pid = new PIDController(2.8, 5.0, 0);
+	public PIDController turn_pid_for_moving = new PIDController(3.5, 5.0, 0);
 	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
 
 	// Shortened names for convenience:
@@ -205,6 +207,27 @@ public class SwerveDrive {
 		}
 	}
 
+	/**
+	 * Meant for being able to turn and move at the same time. //
+	 * same as turn_to_degree, except instead of returning if it is done or not, it returns the speed result from the pidController.
+	 * It also does not set the modules directly.
+	 */
+	public double turn_to_degree_return_mode(double degree, double errorTolerance) {
+		double current_degree = -navxMxp.getRotation2d().getRadians();
+
+		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is to match the gyro's radian reading which spans from -pi to pi.
+		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
+		SmartDashboard.putNumber("pid output", result);
+		double error = turn_pid.getError();
+		SmartDashboard.putNumber("pid error", error);
+		if(!turn_pid.atSetpoint()){
+			return(result);
+		}
+		else{
+			return(0.0);
+		}
+	}
+
 
 	// ------- radian functions -------- //
 	public double deg_to_rad(double deg){
@@ -262,23 +285,31 @@ class MoveToCmd extends CommandBase {
 
 	double start_radians = 0.0;
 
-	public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction) {
+	boolean useVelocityLimit;
+	double velocityLimit;
+	double startTime;
+
+	public MoveToCmd(SwerveDrive swerve_drive, double Meters, double X_direction, double Y_direction,
+					boolean useVelocityLimit) {
 		this.swerve_drive = swerve_drive;
 		this.meters = Meters;
 		this.Xdirection = X_direction;
 		this.Ydirection = Y_direction;
 		// swerve_drive.move_pid.setTolerance(0.01);
+		this.useVelocityLimit = useVelocityLimit;
 	}
 
-
 	public void commandInit() {
-		start_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
+		// start_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
+		start_dist = swerve_drive.lfModule.getDrivePosition();
 		start_radians = -swerve_drive.navxMxp.getRotation2d().getRadians();
+		startTime = Timer.getFPGATimestamp();
 	}
 
 	public boolean commandPeriodic() {
 
-		double lf_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
+		// double lf_dist = swerve_drive.lfModule.getDrivePosition() * (1 - 0.0762);
+		double lf_dist = swerve_drive.lfModule.getDrivePosition();
 
 		double current_dist = lf_dist - start_dist;
 
@@ -286,7 +317,7 @@ class MoveToCmd extends CommandBase {
 
 		double current_radians = -swerve_drive.navxMxp.getRotation2d().getRadians();
 		// Keep the robot pointed in the angle it started at.
-		double angle_pid_result = swerve_drive.turn_pid.calculate(current_radians, start_radians);
+		double angle_pid_result = swerve_drive.turn_pid_for_moving.calculate(current_radians, start_radians);
 
 		// smartdashboard things
 		SmartDashboard.putNumber("lf module distance", lf_dist);
@@ -294,16 +325,29 @@ class MoveToCmd extends CommandBase {
 		SmartDashboard.putNumber("move pid result", pid_result);
 		SmartDashboard.putNumber("move pid error", swerve_drive.move_pid.getError());
 
-		// TODO: handle negative
-		pid_result = (pid_result > 2.5) ? 2.5 : pid_result;
-
-		if(!swerve_drive.move_pid.atSetpoint()){
-			swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, angle_pid_result);
-			return(false);
+		if (pid_result > 2) {
+			pid_result = 2;
+		} else if (pid_result < -2) {
+			pid_result = -2;
 		}
-		else{
-			swerve_drive.setModules(0, 0, 0);
-			return(true);
+
+		double elapsedTime = Timer.getFPGATimestamp() - startTime;
+		if (useVelocityLimit) {
+			if(swerve_drive.lfModule.getDriveVelocity() < 0.2 && elapsedTime > 0.5) {
+				return(true);
+			} else {
+				swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, angle_pid_result);
+				return (false);
+			}
+		} else {
+			if(!swerve_drive.move_pid.atSetpoint()){
+				swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, angle_pid_result);
+				return(false);
+			}
+			else{
+				swerve_drive.setModules(0, 0, 0);
+				return(true);
+			}
 		}
 	}
 }
