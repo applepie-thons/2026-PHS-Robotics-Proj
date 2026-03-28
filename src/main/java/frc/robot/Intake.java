@@ -147,7 +147,7 @@ public class Intake
         SmartDashboard.putNumber("intake piv 2 power", pivot2.get());
         SmartDashboard.putNumber("intake piv 1 power", pivot1.get());
         SmartDashboard.putNumber("Intake velocity", pivot1.getVelocity().getValueAsDouble());
-        SmartDashboard.putNumber("Intake Error", 360 * (intakeLocation.position - pivot1.getPosition().getValueAsDouble()));
+        SmartDashboard.putNumber("Intake Error", (intakeLocation.position - pivot1.getPosition().getValueAsDouble()));
         SmartDashboard.putNumber("k", pivotConfig1.Slot0.kD);
     }
 }

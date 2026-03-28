@@ -166,6 +166,8 @@ public class SwerveModule {
 
 		SmartDashboard.putNumber( moduleName + " speed",
 								  getDrivePosition() );
+		SmartDashboard.putNumber( moduleName + " velocity",
+								  getDriveVelocity() );
 
 		/*
 		  		SmartDashboard.putNumber( moduleName + " speed",

@@ -36,7 +36,7 @@ public class Robot extends TimedRobot {
 		RIGHT;
 	}
 
-	private AutoStartPos start_position = AutoStartPos.RIGHT;
+	private AutoStartPos start_position = AutoStartPos.CENTER;
 
 	// ------ Game Controllers ------ //
 	private final XboxController controllerRed = new XboxController(0);
@@ -197,14 +197,18 @@ public class Robot extends TimedRobot {
 			// I dont know why this is commented out, but i'm going to keep the new stuff here like this
 			// just in case 
 
-			//swerve_drive.setModules(controllerRed.getLeftX(),
-			//	controllerRed.getLeftY(), swerve_drive.turn_to_degree_return_mode(controllerRed.getPOV(), 0.035));
-			// swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.2);
+			/*
+			swerve_drive.setModules(
+				controllerRed.getLeftX(),
+				controllerRed.getLeftY(),
+				swerve_drive.turn_to_degree_return_mode(controllerRed.getPOV(), 2));
+				*/
+			swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.5);
 		}
 		else{
 			is_auto_turning = false;
 		}
-
+		SmartDashboard.putNumber("gyro degrees", -swerve_drive.navxMxp.getRotation2d().getDegrees());
 	}
 
 	public void yellowControllerPeriodic() {
@@ -431,11 +435,13 @@ public class Robot extends TimedRobot {
 
 	public void initCommandsFromStartPos(AutoStartPos start_pos) {
 		if(start_pos == AutoStartPos.LEFT) {
+			/*
 			//untested; from against the hub
 			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(112.26 - 10), -1.0, 0.0, false),
 						 new TurnToCmd(swerve_drive, 360, 0.035),
 						 // new ClimbExtendCmd(climb),
 						 new MoveToCmd(swerve_drive, inches_to_meters(14.3325 + dist_modifier), 0.0, -1.0, false));
+			*/
 		}
 		else if(start_pos == AutoStartPos.RIGHT) {
 			//tested; from middle of hump
@@ -450,13 +456,13 @@ public class Robot extends TimedRobot {
 			initCommands(new MoveToCmd(swerve_drive, 2.687, -1.0, 0.0, false),
 						 new MoveToCmd(swerve_drive, dist_modifier + inches_to_meters(20), 0.0, 1.0, true),
 						 new ClimbExtendCmd(climb),
-						 new MoveToCmd(swerve_drive, 0.196, 1.0, 0.0, false),
+						 new MoveToCmd(swerve_drive, 0.196 + inches_to_meters(3), 1.0, 0.0, false),
 						 new ClimbRetractCmd(climb));
 		}
 		else {
 			//for the center, just shooting
-			initCommands(new MoveToCmd(swerve_drive, 0.0, -1.0, 0.0, false), 
-						 new ShootCmd(shooter, 5));
+			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(48 + 10), -1.0, 0.0, false), 
+						 new ShootCmd(shooter, 12));
 		}
 	}
 

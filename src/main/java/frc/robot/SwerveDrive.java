@@ -25,6 +25,7 @@ public class SwerveDrive {
 
 	public double kP = 5.0;
 	public PIDController turn_pid = new PIDController(2.8, 5.0, 0);
+	public PIDController turn_pid_d_pad = new PIDController(1.2, 0, 0);
 	public PIDController turn_pid_for_moving = new PIDController(3.5, 5.0, 0);
 	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
 
@@ -132,6 +133,11 @@ public class SwerveDrive {
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid.setTolerance(0.035);
 		turn_pid.setIZone(deg_to_rad(15));
+
+		turn_pid_d_pad.enableContinuousInput(-Math.PI, Math.PI);
+		turn_pid_d_pad.setTolerance(2);
+		turn_pid_d_pad.setIZone(deg_to_rad(15));
+
 		move_pid.setIZone(0.2);
 	}
 
@@ -212,21 +218,23 @@ public class SwerveDrive {
 	 * same as turn_to_degree, except instead of returning if it is done or not, it returns the speed result from the pidController.
 	 * It also does not set the modules directly.
 	 */
+	/*
 	public double turn_to_degree_return_mode(double degree, double errorTolerance) {
 		double current_degree = -navxMxp.getRotation2d().getRadians();
 
 		// Subtract 180 to put the 0-360 degree input in the -180 to 180 range. This is to match the gyro's radian reading which spans from -pi to pi.
-		double result = turn_pid.calculate(current_degree, deg_to_rad(degree - 180));
+		double result = turn_pid_d_pad.calculate(current_degree, deg_to_rad(degree - 180));
 		SmartDashboard.putNumber("pid output", result);
-		double error = turn_pid.getError();
+		double error = turn_pid_d_pad.getError();
 		SmartDashboard.putNumber("pid error", error);
-		if(!turn_pid.atSetpoint()){
+		if(!turn_pid_d_pad.atSetpoint()){
 			return(result);
 		}
 		else{
 			return(0.0);
 		}
 	}
+		*/
 
 
 	// ------- radian functions -------- //

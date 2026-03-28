@@ -24,7 +24,7 @@ public class Climb {
 		this.climbMotor.setNeutralMode(NeutralModeValue.Brake);
 
 		this.minClimbPosition = 0;
-		this.maxClimbPosition = 43.9;
+		this.maxClimbPosition = 71.3;
 	}
 
 	public double getPosition() {

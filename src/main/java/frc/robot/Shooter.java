@@ -56,7 +56,7 @@ public class Shooter {
 
 			double currentTime = Timer.getFPGATimestamp();
 			double elapsedTime = currentTime - timeAtPress;
-			if (elapsedTime > 0.25) {
+			if (elapsedTime > 0.75) {
 				shooterInState = ShootingState.LAUNCH;
 			}
 		} else if (currentOverallState == ShootingState.UNLAUNCH) {
@@ -91,7 +91,7 @@ class ShootCmd extends CommandBase {
 	double time = 0.0;
 	double initial_time;
 
-	private void ShootCmd(Shooter shoot, double secs) {
+	public ShootCmd(Shooter shoot, double secs) {
 		this.shooter = shoot;
 		this.time = secs;
 	}
