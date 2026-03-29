@@ -26,7 +26,7 @@ public class SwerveDrive {
 	public double kP = 5.0;
 	public PIDController turn_pid = new PIDController(2.8, 5.0, 0);
 	public PIDController turn_pid_d_pad = new PIDController(1.2, 0, 0);
-	public PIDController turn_pid_for_moving = new PIDController(3.5, 5.0, 0);
+	public PIDController turn_pid_for_moving = new PIDController(2.8, 5.0, 0);
 	public PIDController move_pid = new PIDController(2.0, 5.0, 0);
 
 	// Shortened names for convenience:
@@ -133,6 +133,10 @@ public class SwerveDrive {
 		turn_pid.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid.setTolerance(0.035);
 		turn_pid.setIZone(deg_to_rad(15));
+
+		turn_pid_for_moving.enableContinuousInput(-Math.PI, Math.PI);
+		turn_pid_for_moving.setTolerance(0.035);
+		turn_pid_for_moving.setIZone(deg_to_rad(15));
 
 		turn_pid_d_pad.enableContinuousInput(-Math.PI, Math.PI);
 		turn_pid_d_pad.setTolerance(2);
@@ -333,15 +337,19 @@ class MoveToCmd extends CommandBase {
 		SmartDashboard.putNumber("move pid result", pid_result);
 		SmartDashboard.putNumber("move pid error", swerve_drive.move_pid.getError());
 
-		if (pid_result > 2) {
-			pid_result = 2;
-		} else if (pid_result < -2) {
-			pid_result = -2;
+		if (pid_result > 1.75) {
+			pid_result = 1.75;
+		} else if (pid_result < -1.75) {
+			pid_result = -1.75;
 		}
 
 		double elapsedTime = Timer.getFPGATimestamp() - startTime;
+		double stop_velocity = 0.2;
 		if (useVelocityLimit) {
-			if(swerve_drive.lfModule.getDriveVelocity() < 0.2 && elapsedTime > 0.5) {
+			if(swerve_drive.lfModule.getDriveVelocity() < stop_velocity
+				|| swerve_drive.rfModule.getDriveVelocity() < stop_velocity
+				|| swerve_drive.lbModule.getDriveVelocity() < stop_velocity
+				|| swerve_drive.rbModule.getDriveVelocity() < stop_velocity && elapsedTime > 0.5) {
 				return(true);
 			} else {
 				swerve_drive.setModules(pid_result * -Xdirection, pid_result * -Ydirection, angle_pid_result);

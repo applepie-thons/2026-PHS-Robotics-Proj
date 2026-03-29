@@ -21,14 +21,16 @@ import frc.robot.Constants.ConfigConsts;
 public class Intake
 {
     enum IntakePosition {
-        START(0.35),
-        IN(0.23),
-        PARTIAL(0.12),
-        OUT(0);
+        START(0.35, -1),
+        IN(0.23, 1),
+        PARTIAL(0.12, 2),
+        OUT(0, 3);
 
         private double position;
-        IntakePosition(double rotations) {
+        private int id;
+        IntakePosition(double rotations, int id) {
             position = rotations;
+            this.id = id;
         }
     }
 
@@ -36,7 +38,7 @@ public class Intake
     private TalonFX pivot1;
     private TalonFX pivot2;
 
-    private IntakePosition intakeLocation = IntakePosition.START;
+    private IntakePosition intakeLocation = IntakePosition.IN;
     //private boolean intakingState = false;
     private boolean autoMode = false;
     private double intakeSpeed = 0;
@@ -110,12 +112,37 @@ public class Intake
     }
 
     //Only use for testing
-    public void manualSetIntakePosition(IntakePosition newPosition) {
-        intakeLocation = newPosition;
+    public void manualSetIntakePosition(boolean incrementUp, boolean incrementDown) {
+        int incrementer = 0;
+        if (incrementUp) {
+            incrementer = 1;
+        }
+        else if (incrementDown) {
+            incrementer = -1;
+        }
+
+        intakeLocation.id += incrementer;
+
+        intakeLocation.id = (intakeLocation.id < 0) ? intakeLocation.id * -1 : intakeLocation.id;
+        intakeLocation.id = intakeLocation.id % 3;
     }
 
     private void setIntakePosition() {
         //intakeLocation = (intakingState) ? IntakePosition.OUT : IntakePosition.IN;
+        switch (intakeLocation) {
+            case START: 
+                pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
+                break;
+            case IN:
+                pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
+                break;
+            case PARTIAL:
+                pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
+                break;
+            case OUT:
+                pivot1.set(0);
+                break;
+        }
         pivot1.setControl(voltageRequest.withPosition(intakeLocation.position));
     }
 

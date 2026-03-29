@@ -22,7 +22,7 @@ public class Shooter {
 	private double shootInLaunchSpeed = -1;
 	private double shootInUnlaunchSpeed = 0.25;
 
-	private double shootOutLaunchSpeed = -0.75;
+	private double shootOutLaunchSpeed = -0.6;
 	private double shootOutUnlaunchSpeed = 0.5;
 
 	// Slow speeds for testing

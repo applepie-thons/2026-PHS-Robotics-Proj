@@ -55,7 +55,7 @@ public class SwerveModule {
 		this.speedMotor.setPosition(0);
 
 
-		currentLimitConfig.CurrentLimits.StatorCurrentLimit = 100;
+		currentLimitConfig.CurrentLimits.StatorCurrentLimit = 80;
 		currentLimitConfig.CurrentLimits.StatorCurrentLimitEnable = true;
 		currentLimitConfig.MotorOutput.NeutralMode = NeutralModeValue.Brake;
 

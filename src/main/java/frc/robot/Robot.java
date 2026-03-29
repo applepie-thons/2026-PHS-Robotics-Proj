@@ -10,10 +10,12 @@ import java.util.ArrayList;
 import edu.wpi.first.cameraserver.CameraServer;
 import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.util.PixelFormat;
+import edu.wpi.first.util.sendable.Sendable;
 import edu.wpi.first.wpilibj.AnalogInput;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.DriveConsts;
 import frc.robot.Intake.IntakePosition;
@@ -58,7 +60,7 @@ public class Robot extends TimedRobot {
 	// ----- Deadzone ----- //
 	// hysteresis currently disabled because josh likes max speed better
 	// to enable, multiply motor output by hysteresis_mult
-	//private double deadzone = 0.2;
+	private double deadzone = 0.1;
 
 	// ---- Turn to Degree ---- //
 	private boolean is_auto_turning = false;
@@ -88,6 +90,8 @@ public class Robot extends TimedRobot {
 	ArrayList<CommandBase> autoTestCmds;
 	private int currCmdIndex = 0;
 
+	public SendableChooser<AutoStartPos> choices;
+
 	public Robot() {
 		// TODO (Sahil): Check that is actually drops the camera's resolution.
 		//this.camera = CameraServer.startAutomaticCapture();
@@ -96,6 +100,13 @@ public class Robot extends TimedRobot {
 		//this.camera.setFPS(30);
 
 		autoTestCmds = new ArrayList<CommandBase>();
+
+		choices = new SendableChooser<AutoStartPos>();
+		choices.addOption(AutoStartPos.LEFT.toString(), AutoStartPos.LEFT);
+		choices.addOption(AutoStartPos.CENTER.toString(), AutoStartPos.CENTER);
+		choices.addOption(AutoStartPos.RIGHT.toString(), AutoStartPos.RIGHT);
+
+		SmartDashboard.putData(choices);
 	}
 
 	@Override
@@ -109,7 +120,7 @@ public class Robot extends TimedRobot {
 	@Override
 	public void autonomousInit() {
 		//shooter.setShootingState(ShootingState.LAUNCH);
-		initCommandsFromStartPos(start_position);
+		initCommandsFromStartPos(choices.getSelected());
 	}
 
 	@Override
@@ -151,6 +162,7 @@ public class Robot extends TimedRobot {
 			speedThrottle = 5;
 		}
 
+
 		// Divide by 5 to limit translate speed.
 		double xSpeed = controllerRed.getLeftX() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
 		double ySpeed = controllerRed.getLeftY() * (DriveConsts.maxMetersPerSecToMotorSpeed / speedThrottle);
@@ -163,7 +175,20 @@ public class Robot extends TimedRobot {
 		rotSpeed = Math.pow(rotSpeed, 2) * Math.signum(rotSpeed);
 
 		if(!is_auto_turning){
+
+			// ------------- deadzone ----------- //
+			double joystickMagnitude = Math.sqrt(Math.pow(controllerRed.getLeftX(), 2) + Math.pow(controllerRed.getLeftY(), 2));
+
+			if(deadzone > joystickMagnitude){
+				ySpeed = 0.0;
+				xSpeed = 0.0;
+			}	
+			if(Math.abs(controllerRed.getRightX()) < deadzone) {
+				rotSpeed = 0.0;
+			}
+
 			swerve_drive.setModules(ySpeed, xSpeed, rotSpeed);
+						
 		}
 
 		// ------------------------------- Climb ------------------------------- //
@@ -203,12 +228,19 @@ public class Robot extends TimedRobot {
 				controllerRed.getLeftY(),
 				swerve_drive.turn_to_degree_return_mode(controllerRed.getPOV(), 2));
 				*/
+			double povForDegreeTurn = controllerRed.getPOV();
+			if (povForDegreeTurn <= 180) {
+				povForDegreeTurn += 180;
+			} else {
+				povForDegreeTurn = povForDegreeTurn % 180;
+			}
 			swerve_drive.turn_to_degree(controllerRed.getPOV(), 0.5);
 		}
 		else{
 			is_auto_turning = false;
 		}
 		SmartDashboard.putNumber("gyro degrees", -swerve_drive.navxMxp.getRotation2d().getDegrees());
+		swerve_drive.log();
 	}
 
 	public void yellowControllerPeriodic() {
@@ -226,10 +258,10 @@ public class Robot extends TimedRobot {
 
 		// Set desired position of the intake arm when in `intake.getAutoMode()` is true.
 		if (controllerYellow.getStartButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.OUT);
+			intake.manualSetIntakePosition(true, false);
 		}
 		else if(controllerYellow.getBackButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.IN);
+			intake.manualSetIntakePosition(false, true);
 		}
 
 		/*	Toggle between the intake arm control modes. There are two different control modes, tracked by the boolean return by `intake.getAutoMode()`.
@@ -237,9 +269,11 @@ public class Robot extends TimedRobot {
 			- autoMode=True: Using PID, the arm will move to the position specified by `intake.manualSetIntakePosition()`.
 			- autoMode=False: The arm is controlled directly via an analog user input.
 		*/
+		
 		if (controllerYellow.getRightBumperButtonPressed()) {
 			intake.swapPivotMode();
 		}
+		
 
 		// Actually set the state of the intake wheels and arm motors based on what was configured above.
 		if (intake.getAutoMode()) {
@@ -442,6 +476,9 @@ public class Robot extends TimedRobot {
 						 // new ClimbExtendCmd(climb),
 						 new MoveToCmd(swerve_drive, inches_to_meters(14.3325 + dist_modifier), 0.0, -1.0, false));
 			*/
+
+			initCommands(new TurnToCmd(swerve_drive, 45, 0.035),
+						new ShootCmd(shooter, 7));
 		}
 		else if(start_pos == AutoStartPos.RIGHT) {
 			//tested; from middle of hump
@@ -461,7 +498,8 @@ public class Robot extends TimedRobot {
 		}
 		else {
 			//for the center, just shooting
-			initCommands(new MoveToCmd(swerve_drive, inches_to_meters(48 + 10), -1.0, 0.0, false), 
+			initCommands(// new MoveToCmd(swerve_drive, inches_to_meters(48 + 10), -1.0, 0.0, false), 
+						 new MoveToCmd(swerve_drive, 1.488, -1.0, 0.0, false), 
 						 new ShootCmd(shooter, 12));
 		}
 	}
@@ -480,10 +518,10 @@ public class Robot extends TimedRobot {
 		}
 
 		if (controllerYellow.getLeftBumperButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.IN);
+			intake.manualSetIntakePosition(false, true);
 		}
 		else if (controllerYellow.getRightBumperButtonPressed()) {
-			intake.manualSetIntakePosition(IntakePosition.OUT);
+			intake.manualSetIntakePosition(true, false);
 		}
 
 		if (controllerYellow.getBackButtonPressed()) {
@@ -505,13 +543,7 @@ public class Robot extends TimedRobot {
 		SmartDashboard.putNumber("reversePID", reversePIDModifier);
 		intake.logIntake();
 
-		/*
-		// commented out because this deadzone will only work for swerve drive and cause problems for tank
-		double joystickMagnitude = Math.sqrt(Math.pow(controllerYellow.getLeftX(), 2) + Math.pow(controllerYellow.getLeftY(), 2));
-		if(deadzone > joystickMagnitude){
-			throttle = 0.0;
-		}
-		*/
+		
 	}
 
 	public double inches_to_meters(double inches){
